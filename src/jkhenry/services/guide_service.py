@@ -8,7 +8,7 @@ from typing import Optional
 import sqlalchemy as sa
 
 from jkhenry.domain.models import IBDailyGuide, IBParams, IBState, MarketData, VRGuide, VRParams, VRState
-from jkhenry.market.price_provider import get_price_data
+from jkhenry.market.price_provider import get_friday_close, get_price_data
 from jkhenry.repository.db import get_engine, get_session, init_db
 from jkhenry.repository.repositories import (
     complete_cycle,
@@ -197,8 +197,9 @@ class GuideService:
         snap = self.get_vr_snapshot(portfolio_id)
         portfolio = snap["portfolio"]
 
-        price_data = get_price_data(portfolio.ticker)
-        current_price = manual_current or (Decimal(str(price_data["current"])) if price_data else Decimal("0"))
+        # VR은 항상 '직전 금요일 종가' 기준
+        friday_data = get_friday_close(portfolio.ticker)
+        current_price = manual_current or (friday_data["close"] if friday_data else Decimal("0"))
 
         state = VRState(
             params=snap["params"],

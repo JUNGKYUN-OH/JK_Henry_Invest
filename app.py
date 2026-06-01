@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import streamlit as st
 
-from jkhenry.market.price_provider import clear_cache, get_price_data
+from jkhenry.market.price_provider import clear_cache, get_friday_close, get_price_data
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_pct, fmt_usd
@@ -121,20 +121,25 @@ def _get_card_data(p):
                     status_color=status_color, pnl_color=pnl_color,
                     price_data=price_data)
 
-    else:  # VR
+    else:  # VR — 항상 직전 금요일 종가 기준
+        friday_data = get_friday_close(p.ticker)
+        friday_price = Decimal(str(friday_data["close"])) if friday_data else current
+
         snap  = svc.get_vr_snapshot(p.id)
-        guide = svc.generate_vr_guide(p.id, manual_current=current)
+        guide = svc.generate_vr_guide(p.id, manual_current=friday_price)
 
         action_icon = {"HOLD": "✅", "BUY": "⬇️", "SELL": "⬆️"}.get(guide.action, "—")
         action_color = {
             "HOLD": "var(--buy)", "BUY": "var(--info)", "SELL": "var(--sell)"
         }.get(guide.action, "var(--muted)")
 
+        fri_label = (f"{friday_data['date'].month}/{friday_data['date'].day} 금"
+                     if friday_data else "금 종가")
         metrics = [
-            ("목표값 V",    fmt_usd(guide.v_target)),
-            ("평가금액 E",  fmt_usd(guide.e_value)),
-            ("현재가",      fmt_usd(current) if current else "—"),
-            ("현금 C",      fmt_usd(guide.cash_balance)),
+            ("목표값 V",           fmt_usd(guide.v_target)),
+            ("평가금액 E",          fmt_usd(guide.e_value)),
+            (fri_label,            fmt_usd(friday_price) if friday_price else "—"),
+            ("현금 C",             fmt_usd(guide.cash_balance)),
         ]
         return dict(metrics=metrics, status_icon=action_icon,
                     status_color=action_color, pnl_color=action_color,
@@ -222,6 +227,10 @@ if _filter and sel_p.strategy not in _filter:
 price_data    = get_price_data(sel_p.ticker)
 prev_close    = Decimal(str(price_data["prev_close"])) if price_data else None
 current_price = Decimal(str(price_data["current"]))    if price_data else None
+
+# VR용: 직전 금요일 종가 별도 조회
+friday_data  = get_friday_close(sel_p.ticker) if sel_p.strategy == "VR" else None
+friday_price = Decimal(str(friday_data["close"])) if friday_data else current_price
 
 # ── IB 상세 ───────────────────────────────────────────────────────────────────
 if sel_p.strategy == "IB":
@@ -337,12 +346,18 @@ if sel_p.strategy == "IB":
 # ── VR 상세 ───────────────────────────────────────────────────────────────────
 else:
     snap  = svc.get_vr_snapshot(sel_p.id)
-    guide = svc.generate_vr_guide(sel_p.id, manual_current=current_price)
+    guide = svc.generate_vr_guide(sel_p.id, manual_current=friday_price)
 
     card_header(sel_p.ticker, "VR", sel_p.name)
 
-    if not price_data:
+    if not friday_data:
         status_banner("⚠️ 시세 조회 실패 — 새로고침을 눌러 주세요.", "warning")
+    else:
+        st.caption(
+            f"📅 기준: {friday_data['date'].strftime('%Y-%m-%d')} "
+            f"({'금' if friday_data['date'].weekday() == 4 else '대체 거래일'}) "
+            f"종가 {fmt_usd(friday_price)}"
+        )
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("목표값 V", fmt_usd(guide.v_target))

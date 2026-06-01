@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import streamlit as st
 
+from jkhenry.market.price_provider import get_friday_close
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_usd, order_table, show_price_alert
@@ -37,30 +38,40 @@ if not selected:
 
 snap = svc.get_vr_snapshot(selected.id)
 
-# 시세 조회
+# 시세 조회 — VR은 직전 금요일 종가 기준
 col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
-    from jkhenry.market.price_provider import get_price_data
-    price_data = get_price_data(selected.ticker)
-    if price_data:
-        current_val = float(price_data["current"])
-        st.metric("현재가", f"${current_val:.2f}")
+    from jkhenry.market.price_provider import clear_cache
+    friday_data = get_friday_close(selected.ticker)
+    if friday_data:
+        friday_val = float(friday_data["close"])
+        day_label = "금" if friday_data["date"].weekday() == 4 else "대체 거래일"
+        st.metric(
+            "금요일 종가",
+            f"${friday_val:.2f}",
+            help=f"기준일: {friday_data['date']} ({day_label})",
+        )
         manual_override = False
     else:
         st.warning("시세 조회 실패")
+        friday_val = 0.01
         manual_override = True
 
 with col2:
     if manual_override:
-        current_val = st.number_input("현재가 직접 입력", min_value=0.01, step=0.01)
+        friday_val = st.number_input("금요일 종가 직접 입력", min_value=0.01, step=0.01)
+    elif friday_data:
+        st.caption(
+            f"📅 기준: {friday_data['date']} ({day_label}) 종가\n"
+            "어느 요일에 열어도 같은 금요일 기준으로 계산됩니다."
+        )
 
 with col3:
     if st.button("시세 새로고침"):
-        from jkhenry.market.price_provider import clear_cache
         clear_cache()
         st.rerun()
 
-current_price = Decimal(str(round(current_val, 4)))
+current_price = Decimal(str(round(friday_val, 4)))
 guide = svc.generate_vr_guide(selected.id, manual_current=current_price)
 
 # 핵심 지표 표시
