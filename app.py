@@ -71,21 +71,33 @@ if _has_both:
         st.session_state["dash_filter"] = "전체"
     _filter = st.session_state["dash_filter"]
 
+    def _apply_filter(new_filter: str) -> None:
+        """필터 변경 + 필터 결과 첫 항목 자동 선택."""
+        st.session_state["dash_filter"] = new_filter
+        if new_filter == "IB":
+            candidates = [p for p in portfolios if p.strategy == "IB"]
+        elif new_filter == "VR":
+            candidates = [p for p in portfolios if p.strategy == "VR"]
+        else:
+            candidates = portfolios
+        if candidates:
+            st.session_state["selected_pid"] = candidates[0].id
+
     fc1, fc2, fc3 = st.columns(3)
     with fc1:
         if st.button(f"전체 ({len(portfolios)})", key="_f_all", use_container_width=True,
                      type="primary" if _filter == "전체" else "secondary"):
-            st.session_state["dash_filter"] = "전체"
+            _apply_filter("전체")
             st.rerun()
     with fc2:
         if st.button(f"📈 IB ({_ib_cnt})", key="_f_ib", use_container_width=True,
                      type="primary" if _filter == "IB" else "secondary"):
-            st.session_state["dash_filter"] = "IB"
+            _apply_filter("IB")
             st.rerun()
     with fc3:
         if st.button(f"⚖️ VR ({_vr_cnt})", key="_f_vr", use_container_width=True,
                      type="primary" if _filter == "VR" else "secondary"):
-            st.session_state["dash_filter"] = "VR"
+            _apply_filter("VR")
             st.rerun()
 else:
     _filter = "전체"  # 필터 비활성 → 전체 표시
@@ -226,8 +238,6 @@ if not sel_p:
     st.stop()
 
 # 현재 필터와 다른 전략이 상세에 표시될 때 안내
-if _filter in ("IB", "VR") and sel_p.strategy != _filter:
-    st.caption(f"💡 아래 상세는 {sel_p.strategy} 포트폴리오입니다. 필터를 '전체'로 바꾸거나 해당 전략 카드를 선택하세요.")
 
 price_data    = get_price_data(sel_p.ticker)
 prev_close    = Decimal(str(price_data["prev_close"])) if price_data else None
