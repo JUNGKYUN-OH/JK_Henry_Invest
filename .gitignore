@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# 가상환경
+.venv/
+venv/
+env/
+
+# 테스트 캐시
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 런타임 생성 데이터
+data/
+
+# 스크린샷 (검증용 임시 파일)
+test_*.png
+
+# Claude Code
+.claude/
+statusline-command.sh
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
