@@ -61,6 +61,29 @@ if not portfolios:
 if "selected_pid" not in st.session_state:
     st.session_state["selected_pid"] = portfolios[0].id
 
+# ── 전략 필터 (IB/VR 혼재 시에만 표시) ───────────────────────────────────────
+_ib_cnt = sum(1 for p in portfolios if p.strategy == "IB")
+_vr_cnt = sum(1 for p in portfolios if p.strategy == "VR")
+_has_both = _ib_cnt > 0 and _vr_cnt > 0
+
+if _has_both:
+    _filter_opts = [
+        f"전체 ({len(portfolios)})",
+        f"📈 IB ({_ib_cnt})",
+        f"⚖️ VR ({_vr_cnt})",
+    ]
+    _filter = st.segmented_control(
+        "전략 필터", _filter_opts,
+        default=_filter_opts[0],
+        key="dash_filter",
+        label_visibility="collapsed",
+    )
+    # None(선택 해제) 방어
+    if _filter is None:
+        _filter = _filter_opts[0]
+else:
+    _filter = None  # 필터 비활성 → 전체 표시
+
 
 # ── 컴팩트 요약 카드 데이터 수집 ───────────────────────────────────────────────
 def _get_card_data(p):
@@ -163,13 +186,23 @@ def _render_compact_card(p, card_data):
 
 
 # ── 컴팩트 그리드 (3열) ────────────────────────────────────────────────────────
-n = len(portfolios)
-cols = st.columns(min(n, 3))
+# 필터 적용: 그리드에만 사용 (상세 섹션은 selected_pid 기준 독립)
+if _filter and "IB" in _filter and "VR" not in _filter:
+    display_portfolios = [p for p in portfolios if p.strategy == "IB"]
+elif _filter and "VR" in _filter and "IB" not in _filter:
+    display_portfolios = [p for p in portfolios if p.strategy == "VR"]
+else:
+    display_portfolios = portfolios
 
-for idx, p in enumerate(portfolios):
-    with cols[idx % 3]:
-        data = _get_card_data(p)
-        _render_compact_card(p, data)
+if not display_portfolios:
+    st.info("해당 전략 포트폴리오가 없습니다.")
+else:
+    n = len(display_portfolios)
+    cols = st.columns(min(n, 3))
+    for idx, p in enumerate(display_portfolios):
+        with cols[idx % 3]:
+            data = _get_card_data(p)
+            _render_compact_card(p, data)
 
 gap(4)
 st.divider()
@@ -180,6 +213,11 @@ sel_p = next((x for x in portfolios if x.id == selected_pid), None)
 
 if not sel_p:
     st.stop()
+
+# 현재 필터와 다른 전략이 상세에 표시될 때 안내
+if _filter and sel_p.strategy not in _filter:
+    other = "VR" if sel_p.strategy == "VR" else "IB"
+    st.caption(f"💡 아래 상세는 {other} 포트폴리오입니다. 필터를 '전체'로 바꾸거나 해당 전략 카드를 선택하세요.")
 
 price_data    = get_price_data(sel_p.ticker)
 prev_close    = Decimal(str(price_data["prev_close"])) if price_data else None
