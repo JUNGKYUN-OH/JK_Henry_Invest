@@ -151,34 +151,6 @@ hr { border-color: rgba(15,23,42,0.09) !important; }
 /* Page link */
 [data-testid="stPageLink"] a { color: #2563EB !important; }
 
-/* Segmented control — 컨테이너와 내부 트랙 모두 라이트 배경으로 강제 */
-[data-testid="stSegmentedControl"],
-[data-testid="stSegmentedControl"] > div,
-[data-testid="stSegmentedControl"] > div > div {
-    background-color: #E2E8F0 !important;
-    border-radius: 10px !important;
-}
-/* 미선택 옵션 — 텍스트 색상 */
-[data-testid="stSegmentedControl"] label {
-    background-color: transparent !important;
-}
-[data-testid="stSegmentedControl"] label p,
-[data-testid="stSegmentedControl"] label span,
-[data-testid="stSegmentedControl"] label div {
-    color: #475569 !important;
-}
-/* 선택된 옵션 — 흰 배경 + 진한 텍스트 */
-[data-testid="stSegmentedControl"] label:has(input:checked) {
-    background-color: #FFFFFF !important;
-    border-radius: 8px !important;
-    box-shadow: 0 1px 4px rgba(15,23,42,0.14) !important;
-}
-[data-testid="stSegmentedControl"] label:has(input:checked) p,
-[data-testid="stSegmentedControl"] label:has(input:checked) span,
-[data-testid="stSegmentedControl"] label:has(input:checked) div {
-    color: #0F172A !important;
-    font-weight: 700 !important;
-}
 """
 
 # ── 공통 CSS (테마 무관) ───────────────────────────────────────────────────────
@@ -279,7 +251,7 @@ hr { border-color: var(--border) !important; margin: 0.75rem 0 !important; }
 # ── 공개 API ──────────────────────────────────────────────────────────────────
 
 def current_theme() -> str:
-    return st.session_state.get("theme", "dark")
+    return st.session_state.get("theme", "light")
 
 
 def inject_css() -> None:
