@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """글로벌 CSS + HTML 컴포넌트. 라이트/다크 테마 지원.
 
 전략:
@@ -160,8 +161,6 @@ hr { border-color: rgba(148,163,184,0.12) !important; }
 /* Page link */
 [data-testid="stPageLink"] a { color: #4F8EF7 !important; }"""
 
-"""
-
 # ── 공통 CSS (테마 무관) ───────────────────────────────────────────────────────
 
 _BASE_CSS = """
@@ -171,7 +170,7 @@ _BASE_CSS = """
 /* footer 숨김 */
 footer { visibility: hidden !important; }
 
-/* 레이아웃 — 상단 패딩을 충분히 줘서 Streamlit 헤더바와 겹치지 않게 */
+/* 레이아웃 - 상단 패딩을 충분히 줘서 Streamlit 헤더바와 겹치지 않게 */
 .block-container {
     padding-top: 2.5rem !important;
     padding-bottom: 2rem !important;
