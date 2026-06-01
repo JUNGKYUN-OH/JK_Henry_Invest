@@ -21,7 +21,7 @@ inject_css()
 render_sidebar()
 init_db()
 
-st.title("⚖️ VR (Value Rebalancing) 가이드")
+st.title("⚖️ VR 가이드")
 
 svc = GuideService()
 portfolios = [p for p in svc.list_portfolios() if p.strategy == "VR"]
