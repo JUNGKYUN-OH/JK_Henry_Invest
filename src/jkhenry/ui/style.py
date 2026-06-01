@@ -35,72 +35,81 @@ _VARS = {
 }""",
 }
 
-# ── 라이트 모드: Streamlit 네이티브 위젯 색상 오버라이드 ───────────────────────
-# config.toml이 dark이므로, 라이트 선택 시 밝게 강제 덮어씀
+# ── 라이트 모드: 보조 오버라이드 (config.toml이 이제 light 기반) ─────────────
+# primary 버튼 텍스트가 전역 p/span 규칙에 덮이는 것만 방지
 
 _LIGHT_OVERRIDES = """
+[data-testid="stDecoration"] { display:none !important; }
+#MainMenu { visibility: hidden !important; }
+
+/* primary 버튼 텍스트 흰색 유지 */
+.stButton > button[kind="primary"] p,
+.stButton > button[kind="primary"] span,
+.stButton > button[data-testid*="primary"] p,
+.stButton > button[data-testid*="primary"] span {
+    color: #FFFFFF !important;
+}"""
+
+# ── 다크 모드: config.toml(light 기반) 위에 덮어씌우는 오버라이드 ───────────────
+
+_DARK_OVERRIDES = """
 /* 앱 배경 */
 .stApp,
-[data-testid="stAppViewContainer"] {
-    background-color: #F8FAFC !important;
-}
+[data-testid="stAppViewContainer"] { background-color: #0F172A !important; }
 [data-testid="stHeader"] {
-    background-color: #F8FAFC !important;
-    border-bottom: 1px solid rgba(15,23,42,0.08) !important;
+    background-color: #0F172A !important;
+    border-bottom: 1px solid rgba(148,163,184,0.1) !important;
 }
-/* stDecoration(상단 컬러 바)는 숨겨도 사이드바 토글에 영향 없음 */
 [data-testid="stDecoration"] { display:none !important; }
-/* 상단 메뉴(MainMenu) 라이트 모드에서도 숨김 */
 #MainMenu { visibility: hidden !important; }
 
 /* 사이드바 */
 section[data-testid="stSidebar"],
 [data-testid="stSidebarContent"] {
-    background-color: #FFFFFF !important;
-    border-right: 1px solid rgba(15,23,42,0.08) !important;
+    background-color: #1E293B !important;
+    border-right: 1px solid rgba(148,163,184,0.1) !important;
 }
-[data-testid="stSidebarContent"] * { color: #0F172A !important; }
-[data-testid="stSidebarCollapsedControl"] svg { color: #0F172A !important; }
+[data-testid="stSidebarContent"] * { color: #F1F5F9 !important; }
+[data-testid="stSidebarCollapsedControl"] svg { color: #F1F5F9 !important; }
 
 /* 기본 텍스트 */
 .stApp, .stMarkdown, p, span, label,
-h1, h2, h3, h4, h5, h6 { color: #0F172A !important; }
+h1, h2, h3, h4, h5, h6 { color: #F1F5F9 !important; }
 
 /* 메트릭 */
-[data-testid="stMetricValue"]  { color: #0F172A !important; }
-[data-testid="stMetricLabel"]  { color: #64748B !important; }
-[data-testid="stCaptionContainer"] { color: #64748B !important; }
+[data-testid="stMetricValue"]  { color: #F1F5F9 !important; }
+[data-testid="stMetricLabel"]  { color: #94A3B8 !important; }
+[data-testid="stCaptionContainer"] { color: #94A3B8 !important; }
 
 /* 컨테이너·카드 */
 [data-testid="stVerticalBlockBorderWrapper"] > div {
-    background-color: #FFFFFF !important;
-    border-color: rgba(15,23,42,0.09) !important;
+    background-color: #1E293B !important;
+    border-color: rgba(148,163,184,0.12) !important;
 }
 
 /* Expander */
 [data-testid="stExpander"] {
-    background-color: #F1F5F9 !important;
-    border-color: rgba(15,23,42,0.09) !important;
+    background-color: #263348 !important;
+    border-color: rgba(148,163,184,0.12) !important;
 }
 [data-testid="stExpander"] summary,
 [data-testid="stExpanderDetails"] {
-    background-color: #F1F5F9 !important;
-    color: #0F172A !important;
+    background-color: #263348 !important;
+    color: #F1F5F9 !important;
 }
 
 /* 버튼 */
 .stButton > button {
-    background-color: #F1F5F9 !important;
-    color: #0F172A !important;
-    border: 1px solid rgba(15,23,42,0.15) !important;
+    background-color: #1E293B !important;
+    color: #F1F5F9 !important;
+    border: 1px solid rgba(148,163,184,0.2) !important;
 }
 .stButton > button[kind="primary"],
 .stButton > button[data-testid*="primary"] {
-    background-color: #2563EB !important;
+    background-color: #4F8EF7 !important;
     color: #FFFFFF !important;
-    border-color: #2563EB !important;
+    border-color: #4F8EF7 !important;
 }
-/* 전역 p/span 색상 오버라이드가 primary 버튼 텍스트를 검게 만드는 것을 방지 */
 .stButton > button[kind="primary"] p,
 .stButton > button[kind="primary"] span,
 .stButton > button[data-testid*="primary"] p,
@@ -112,25 +121,25 @@ h1, h2, h3, h4, h5, h6 { color: #0F172A !important; }
 .stTextInput input,
 .stNumberInput input,
 .stDateInput input {
-    background-color: #FFFFFF !important;
-    color: #0F172A !important;
-    border-color: rgba(15,23,42,0.2) !important;
+    background-color: #1E293B !important;
+    color: #F1F5F9 !important;
+    border-color: rgba(148,163,184,0.2) !important;
 }
 
 /* Selectbox */
 .stSelectbox > div > div {
-    background-color: #FFFFFF !important;
-    color: #0F172A !important;
-    border-color: rgba(15,23,42,0.2) !important;
+    background-color: #1E293B !important;
+    color: #F1F5F9 !important;
+    border-color: rgba(148,163,184,0.2) !important;
 }
 
 /* Radio */
-.stRadio > div, .stRadio label { color: #0F172A !important; }
+.stRadio > div, .stRadio label { color: #F1F5F9 !important; }
 
 /* Form */
 [data-testid="stForm"] {
     background-color: transparent !important;
-    border-color: rgba(15,23,42,0.09) !important;
+    border-color: rgba(148,163,184,0.12) !important;
 }
 
 /* Alert 박스 */
@@ -138,18 +147,18 @@ h1, h2, h3, h4, h5, h6 { color: #0F172A !important; }
 [data-testid="stSuccess"],
 [data-testid="stWarning"],
 [data-testid="stError"] {
-    background-color: #F1F5F9 !important;
-    color: #0F172A !important;
+    background-color: #263348 !important;
+    color: #F1F5F9 !important;
 }
 
 /* Dataframe */
-[data-testid="stDataFrame"] iframe { background-color: #FFFFFF !important; }
+[data-testid="stDataFrame"] iframe { background-color: #1E293B !important; }
 
 /* Divider */
-hr { border-color: rgba(15,23,42,0.09) !important; }
+hr { border-color: rgba(148,163,184,0.12) !important; }
 
 /* Page link */
-[data-testid="stPageLink"] a { color: #2563EB !important; }
+[data-testid="stPageLink"] a { color: #4F8EF7 !important; }"""
 
 """
 
@@ -257,7 +266,7 @@ def current_theme() -> str:
 def inject_css() -> None:
     """모든 페이지 최상단에서 호출. 현재 테마 CSS를 주입한다."""
     theme = current_theme()
-    extra = _LIGHT_OVERRIDES if theme == "light" else ""
+    extra = _DARK_OVERRIDES if theme == "dark" else _LIGHT_OVERRIDES
     st.markdown(
         f"<style>{_VARS[theme]}{_BASE_CSS}{extra}</style>",
         unsafe_allow_html=True,
