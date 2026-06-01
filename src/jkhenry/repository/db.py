@@ -13,10 +13,37 @@ _PROJECT_ROOT = Path(__file__).parents[3]
 DB_PATH = _PROJECT_ROOT / "data" / "jkhenry.db"
 
 
+def _get_db_url() -> tuple[str, bool]:
+    """
+    (DB URL, is_remote) 반환.
+    Streamlit secrets에 [turso] 설정이 있으면 libSQL(Turso) URL,
+    없으면 로컬 SQLite URL. pytest 등 비-Streamlit 환경에서도 안전하게 동작.
+    """
+    try:
+        import streamlit as st
+        turso = st.secrets.get("turso", {})
+        url = turso.get("url", "")
+        token = turso.get("auth_token", "")
+        if url and token:
+            # libSQL URL에 authToken 파라미터 추가
+            sep = "&" if "?" in url else "?"
+            return f"{url}{sep}authToken={token}", True
+    except Exception:
+        pass
+    return f"sqlite:///{DB_PATH}", False
+
+
 def get_engine(db_path: Path | None = None) -> sa.Engine:
-    path = db_path or DB_PATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return create_engine(f"sqlite:///{path}", echo=False)
+    if db_path is not None:
+        # 테스트 등 명시적 경로 지정 시 로컬 SQLite 사용
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        return create_engine(f"sqlite:///{db_path}", echo=False)
+
+    url, is_remote = _get_db_url()
+    if not is_remote:
+        # 로컬 SQLite: data/ 디렉터리 자동 생성
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    return create_engine(url, echo=False)
 
 
 class DecimalText(sa.TypeDecorator):

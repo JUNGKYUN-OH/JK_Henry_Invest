@@ -28,6 +28,9 @@ test_*.png
 .claude/
 statusline-command.sh
 
+# Streamlit 시크릿 (Turso 토큰 등 민감 정보)
+.streamlit/secrets.toml
+
 # 에디터
 .vscode/
 .idea/
