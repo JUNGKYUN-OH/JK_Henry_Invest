@@ -67,7 +67,11 @@ _vr_cnt = sum(1 for p in portfolios if p.strategy == "VR")
 _has_both = _ib_cnt > 0 and _vr_cnt > 0
 
 if _has_both:
-    _filter_opts = ["전체", "📈 IB", "⚖️ VR"]
+    _filter_opts = [
+        f"전체 ({len(portfolios)})",
+        f"📈 IB ({_ib_cnt})",
+        f"⚖️ VR ({_vr_cnt})",
+    ]
     _filter = st.segmented_control(
         "전략 필터", _filter_opts,
         default=_filter_opts[0],
