@@ -25,9 +25,17 @@ def _get_db_url() -> tuple[str, bool]:
         url = turso.get("url", "")
         token = turso.get("auth_token", "")
         if url and token:
-            # libSQL URL에 authToken 파라미터 추가
+            try:
+                import sqlalchemy_libsql  # noqa: F401
+            except ImportError as e:
+                raise RuntimeError(
+                    "Turso secrets are configured but sqlalchemy-libsql is not installed. "
+                    "Add 'sqlalchemy-libsql>=0.1' to requirements.txt."
+                ) from e
             sep = "&" if "?" in url else "?"
             return f"{url}{sep}authToken={token}", True
+    except RuntimeError:
+        raise
     except Exception:
         pass
     return f"sqlite:///{DB_PATH}", False
