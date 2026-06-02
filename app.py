@@ -206,31 +206,29 @@ def _render_compact_card(p, card_data):
         for lbl, val in metrics
     )
 
-    st.markdown(f"""
-    <div style="
-        position:relative;overflow:hidden;
-        background:{bg};border:{border};border-radius:18px;
-        padding:15px 14px 12px;
-        box-shadow:{glow};
-        backdrop-filter:var(--blur);
-        -webkit-backdrop-filter:var(--blur);
-        transition:transform 0.18s ease,box-shadow 0.18s ease;
-    ">
-        {accent_bar}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <span style="font-size:1.12rem;font-weight:800;color:var(--text);">{p.ticker}</span>
-                <span style="
-                    font-size:0.60rem;color:{color};font-weight:700;
-                    background:{color}1A;padding:2px 8px;border-radius:20px;
-                    border:1px solid {color}28;letter-spacing:0.04em;
-                ">{strat}</span>
-            </div>
-            <span style="font-size:1.15rem;">{card_data['status_icon']}</span>
-        </div>
-        {rows_html}
-    </div>
-    """, unsafe_allow_html=True)
+    # 빈 accent_bar로 공백 줄이 생기면 CommonMark가 HTML 블록을 종료시키므로
+    # 단일 문자열로 조립해 줄 바꿈을 제거한다.
+    badge = (
+        f'<span style="font-size:0.60rem;color:{color};font-weight:700;'
+        f'background:{color}1A;padding:2px 8px;border-radius:20px;'
+        f'border:1px solid {color}28;letter-spacing:0.04em;">{strat}</span>'
+    )
+    header = (
+        f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+        f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+        f'<span style="font-size:1.12rem;font-weight:800;color:var(--text);">{p.ticker}</span>'
+        f'{badge}</div>'
+        f'<span style="font-size:1.15rem;">{card_data["status_icon"]}</span>'
+        f'</div>'
+    )
+    card_html = (
+        f'<div style="position:relative;overflow:hidden;background:{bg};border:{border};'
+        f'border-radius:18px;padding:15px 14px 12px;box-shadow:{glow};'
+        f'backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);'
+        f'transition:transform 0.18s ease,box-shadow 0.18s ease;">'
+        f'{accent_bar}{header}{rows_html}</div>'
+    )
+    st.markdown(card_html, unsafe_allow_html=True)
 
     gap(4)
     label = "✅ 선택됨" if is_sel else "📊 상세보기"
