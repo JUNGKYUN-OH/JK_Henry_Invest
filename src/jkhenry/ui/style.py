@@ -193,6 +193,20 @@ footer { visibility: hidden !important; }
     -webkit-backdrop-filter: none !important;
 }
 
+/* 모바일: 헤더 잔여 UI 정리 */
+@media (max-width: 640px) {
+    [data-testid="stHeader"] { background: transparent !important; box-shadow: none !important; }
+    [data-testid="stToolbar"] { display: none !important; }
+    [data-testid="stStatusWidget"] { display: none !important; }
+}
+
+/* 히어로 부제목 반응형 — 모바일은 짧은 버전 표시 */
+.hero-sub-short { display: none; }
+@media (max-width: 640px) {
+    .hero-sub-full  { display: none !important; }
+    .hero-sub-short { display: inline !important; }
+}
+
 /* 레이아웃 */
 .block-container {
     padding-top: 2.5rem !important;
