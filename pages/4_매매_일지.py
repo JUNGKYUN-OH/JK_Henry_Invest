@@ -13,7 +13,7 @@ from jkhenry.repository.db import get_engine, get_session, init_db
 from jkhenry.repository.repositories import delete_trade, get_trade, update_trade
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_usd, strategy_badge
-from jkhenry.ui.style import C, gap, inject_css, render_sidebar, section_label, status_banner
+from jkhenry.ui.style import C, gap, inject_css, page_header, render_sidebar, section_label, status_banner
 
 st.set_page_config(page_title="매매 일지", page_icon="📋", layout="centered",
                    initial_sidebar_state="expanded")
@@ -21,11 +21,7 @@ inject_css()
 render_sidebar()
 init_db()
 
-st.markdown("""
-<div style="text-align:center;padding:8px 0 18px 0;">
-    <div style="font-size:1.6rem;font-weight:800;">📋 매매 일지</div>
-</div>
-""", unsafe_allow_html=True)
+page_header("📋", "매매 일지")
 
 svc = GuideService()
 portfolios = svc.list_portfolios()
@@ -33,32 +29,36 @@ pf_map = {p.id: p for p in portfolios}
 engine = get_engine()
 
 # ── 필터 ───────────────────────────────────────────────────────────────────────
-fc1, fc2, fc3 = st.columns(3)
-with fc1:
-    selected_pf = st.selectbox(
-        "포트폴리오",
-        [None] + portfolios,
-        format_func=lambda p: "전체" if p is None else f"{p.ticker} — {p.name}",
-    )
-with fc2:
-    from_date = st.date_input("시작일", value=date.today() - timedelta(days=90))
-with fc3:
-    to_date = st.date_input("종료일", value=date.today())
+with st.container(border=True):
+    section_label("조회 조건")
+    fc1, fc2, fc3 = st.columns(3)
+    with fc1:
+        selected_pf = st.selectbox(
+            "포트폴리오",
+            [None] + portfolios,
+            format_func=lambda p: "전체" if p is None else f"{p.ticker} — {p.name}",
+        )
+    with fc2:
+        from_date = st.date_input("시작일", value=date.today() - timedelta(days=90))
+    with fc3:
+        to_date = st.date_input("종료일", value=date.today())
 
 pid = selected_pf.id if selected_pf else None
 trades = svc.get_journal(portfolio_id=pid, from_date=from_date, to_date=to_date)
 
 if not trades:
     gap(20)
-    st.markdown(f"""
-    <div style="text-align:center;color:{C['muted']};padding:32px;">
-        <div style="font-size:2rem;margin-bottom:8px;">📭</div>
-        <div>해당 기간에 체결 기록이 없습니다.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="text-align:center;background:var(--card);border:1px solid var(--glass-border);'
+        f'border-radius:20px;padding:40px;backdrop-filter:var(--blur);">'
+        f'<div style="font-size:2rem;margin-bottom:10px;">📭</div>'
+        f'<div style="color:var(--muted);">해당 기간에 체결 기록이 없습니다.</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
     st.stop()
 
-# CSV 내보내기
+# ── CSV 내보내기 ───────────────────────────────────────────────────────────────
 import pandas as pd
 rows_csv = []
 for t in trades:
@@ -81,6 +81,8 @@ gap(6)
 st.divider()
 
 # ── 행별 인라인 수정/삭제 ───────────────────────────────────────────────────────
+section_label("체결 내역")
+
 for t in trades:
     pf = pf_map.get(t.portfolio_id)
     ticker   = pf.ticker if pf else "—"
@@ -89,7 +91,6 @@ for t in trades:
     side_lbl = "매수" if is_buy else "매도"
     color    = C["buy"] if is_buy else C["sell"]
 
-    # 아코디언 제목: 요약 정보가 한 줄에 보임
     label = (
         f"{side_ico} {t.trade_date}  ·  {ticker}  ·  {side_lbl}  ·  "
         f"${float(t.price):.4f} × {float(t.shares):.2f}주 = ${float(t.amount):.2f}"
@@ -97,7 +98,6 @@ for t in trades:
     )
 
     with st.expander(label):
-        # 작은 배지 표시
         st.markdown(
             f'<span style="font-size:0.7rem;background:{color}22;color:{color};'
             f'padding:2px 8px;border-radius:20px;font-weight:700;">'

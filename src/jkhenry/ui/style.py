@@ -365,6 +365,23 @@ def render_sidebar() -> None:
 
 # ── HTML 컴포넌트 ─────────────────────────────────────────────────────────────
 
+def page_header(icon: str, title: str, subtitle: str = "") -> None:
+    """각 페이지 상단 공통 그라디언트 헤더."""
+    sub = (
+        f'<div style="font-size:0.78rem;color:var(--muted);margin-top:3px;">{subtitle}</div>'
+        if subtitle else ""
+    )
+    st.markdown(
+        f'<div style="padding:4px 0 16px 0;">'
+        f'<div style="font-size:1.45rem;font-weight:800;letter-spacing:-0.02em;'
+        f'background:linear-gradient(135deg,var(--p1) 0%,var(--p2) 100%);'
+        f'-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
+        f'background-clip:text;display:inline-block;">{icon} {title}</div>'
+        f'{sub}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def card_header(ticker: str, strategy: str, name: str = "") -> None:
     color  = "var(--ib)" if strategy == "IB" else "var(--vr)"
     color2 = "var(--p1)" if strategy == "IB" else "var(--p2)"

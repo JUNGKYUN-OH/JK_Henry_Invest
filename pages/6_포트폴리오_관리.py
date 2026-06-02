@@ -18,7 +18,7 @@ from jkhenry.repository.repositories import (
     update_portfolio_status,
 )
 from jkhenry.ui.components import strategy_badge
-from jkhenry.ui.style import C, gap, inject_css, render_sidebar, status_banner
+from jkhenry.ui.style import C, gap, inject_css, page_header, render_sidebar, section_label, status_banner
 
 st.set_page_config(page_title="포트폴리오 관리", page_icon="⚙️", layout="centered",
                    initial_sidebar_state="expanded")
@@ -26,16 +26,10 @@ inject_css()
 render_sidebar()
 init_db()
 
-st.markdown("""
-<div style="text-align:center;padding:8px 0 18px 0;">
-    <div style="font-size:1.6rem;font-weight:800;">⚙️ 포트폴리오 관리</div>
-    <div style="font-size:0.8rem;color:#94A3B8;margin-top:4px;">수정 · 비활성화 · 삭제</div>
-</div>
-""", unsafe_allow_html=True)
+page_header("⚙️", "포트폴리오 관리", "수정 · 비활성화 · 삭제")
 
 engine = get_engine()
 
-# 활성 + 비활성 모두 표시
 with get_session(engine) as s:
     active   = get_all_portfolios(s, status="active")
     inactive = get_all_portfolios(s, status="inactive")
@@ -57,10 +51,7 @@ for p in all_portfolios:
         params = json.loads(p.params)
 
         # ── 파라미터 수정 폼 ────────────────────────────────────────────────────
-        st.markdown(f"<div style='font-size:0.75rem;font-weight:700;text-transform:uppercase;"
-                    f"letter-spacing:0.06em;color:{C['muted']};margin-bottom:8px;'>파라미터 수정</div>",
-                    unsafe_allow_html=True)
-
+        section_label("파라미터 수정")
         with st.form(f"edit_{p.id}"):
             new_name = st.text_input("포트폴리오 이름", value=p.name, key=f"nm_{p.id}")
 
@@ -126,10 +117,7 @@ for p in all_portfolios:
         st.divider()
 
         # ── 비활성화 / 재활성화 ─────────────────────────────────────────────────
-        st.markdown(f"<div style='font-size:0.75rem;font-weight:700;text-transform:uppercase;"
-                    f"letter-spacing:0.06em;color:{C['muted']};margin-bottom:8px;'>운용 상태</div>",
-                    unsafe_allow_html=True)
-
+        section_label("운용 상태")
         if is_active:
             st.caption("비활성화하면 대시보드에서 숨겨집니다. 데이터는 보존됩니다.")
             if st.button("⏸ 비활성화 (숨김)", key=f"deact_{p.id}", use_container_width=True):
@@ -151,11 +139,8 @@ for p in all_portfolios:
         st.divider()
 
         # ── 완전 삭제 (2단계 확인) ───────────────────────────────────────────────
-        st.markdown(f"<div style='font-size:0.75rem;font-weight:700;text-transform:uppercase;"
-                    f"letter-spacing:0.06em;color:{C['loss']};margin-bottom:8px;'>위험 구역</div>",
-                    unsafe_allow_html=True)
-
-        st.caption("⚠️ 삭제하면 체결 기록, 사이클, VR 주기 데이터가 **모두 영구 삭제**됩니다.")
+        section_label("⚠️ 위험 구역")
+        st.caption("삭제하면 체결 기록, 사이클, VR 주기 데이터가 **모두 영구 삭제**됩니다.")
 
         confirm_key = f"confirm_del_{p.id}"
         if confirm_key not in st.session_state:
