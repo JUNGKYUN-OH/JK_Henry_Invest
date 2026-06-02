@@ -94,7 +94,9 @@ if _has_both:
         if candidates:
             st.session_state["selected_pid"] = candidates[0].id
 
-    fc1, fc2, fc3 = st.columns(3)
+    # [10,10,10] = 시각적으로 st.columns(3)과 동일하나, flex:10 인라인 스타일로
+    # 모바일 CSS에서 이 행만 정확히 타겟해 가로 유지 가능
+    fc1, fc2, fc3 = st.columns([10, 10, 10])
     with fc1:
         if st.button(f"전체 ({len(portfolios)})", key="_f_all", use_container_width=True,
                      type="primary" if _filter == "전체" else "secondary"):
