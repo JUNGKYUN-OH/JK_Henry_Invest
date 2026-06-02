@@ -79,39 +79,27 @@ _vr_cnt = sum(1 for p in portfolios if p.strategy == "VR")
 _has_both = _ib_cnt > 0 and _vr_cnt > 0
 
 if _has_both:
-    if "dash_filter" not in st.session_state:
-        st.session_state["dash_filter"] = "전체"
-    _filter = st.session_state["dash_filter"]
-
-    def _apply_filter(new_filter: str) -> None:
-        st.session_state["dash_filter"] = new_filter
-        if new_filter == "IB":
-            candidates = [p for p in portfolios if p.strategy == "IB"]
-        elif new_filter == "VR":
-            candidates = [p for p in portfolios if p.strategy == "VR"]
-        else:
-            candidates = portfolios
-        if candidates:
-            st.session_state["selected_pid"] = candidates[0].id
-
-    # [10,10,10] = 시각적으로 st.columns(3)과 동일하나, flex:10 인라인 스타일로
-    # 모바일 CSS에서 이 행만 정확히 타겟해 가로 유지 가능
-    fc1, fc2, fc3 = st.columns([10, 10, 10])
-    with fc1:
-        if st.button(f"전체 ({len(portfolios)})", key="_f_all", use_container_width=True,
-                     type="primary" if _filter == "전체" else "secondary"):
-            _apply_filter("전체")
-            st.rerun()
-    with fc2:
-        if st.button(f"📈 IB ({_ib_cnt})", key="_f_ib", use_container_width=True,
-                     type="primary" if _filter == "IB" else "secondary"):
-            _apply_filter("IB")
-            st.rerun()
-    with fc3:
-        if st.button(f"⚖️ VR ({_vr_cnt})", key="_f_vr", use_container_width=True,
-                     type="primary" if _filter == "VR" else "secondary"):
-            _apply_filter("VR")
-            st.rerun()
+    # st.radio(horizontal=True) — 모바일/데스크탑 모두 한 줄 보장
+    # st.columns 기반 버튼은 Streamlit CSS 클래스 구조상 모바일 CSS 타겟 불가
+    _filter = st.radio(
+        "전략 필터",
+        options=["전체", "IB", "VR"],
+        format_func=lambda x: {
+            "전체": f"전체 ({len(portfolios)})",
+            "IB":   f"📈 IB ({_ib_cnt})",
+            "VR":   f"⚖️ VR ({_vr_cnt})",
+        }[x],
+        horizontal=True,
+        key="dash_filter",
+        label_visibility="collapsed",
+    )
+    # 필터 변경 시 현재 선택 포트폴리오가 목록에 없으면 첫 번째 항목으로 자동 전환
+    _candidates = (
+        [p for p in portfolios if p.strategy == _filter]
+        if _filter in ("IB", "VR") else portfolios
+    )
+    if _candidates and st.session_state.get("selected_pid") not in {p.id for p in _candidates}:
+        st.session_state["selected_pid"] = _candidates[0].id
     gap(8)
 else:
     _filter = "전체"

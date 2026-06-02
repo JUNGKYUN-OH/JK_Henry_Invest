@@ -209,21 +209,6 @@ footer { visibility: hidden !important; }
     .hero-sub-short { display: inline !important; }
 }
 
-/* 모바일: 필터 버튼(전체/IB/VR) 한 줄 가로 배치 유지
-   st.columns([10,10,10]) 으로 부여된 flex:10 을 고유 식별자로 사용.
-   전역 모바일 스타일([data-testid="column"] { flex:0 0 100% })보다
-   속성 셀렉터 2개(명시도 0-2-0) > 1개(0-1-0) 로 우선 적용됨. */
-@media (max-width: 640px) {
-    [data-testid="column"][style*="flex: 10 1"] {
-        flex: 1 1 0% !important;
-        min-width: 0 !important;
-    }
-    [data-testid="column"][style*="flex: 10 1"] .stButton > button {
-        font-size: 0.78rem !important;
-        padding-left: 0.3rem !important;
-        padding-right: 0.3rem !important;
-    }
-}
 
 /* 레이아웃 */
 .block-container {
