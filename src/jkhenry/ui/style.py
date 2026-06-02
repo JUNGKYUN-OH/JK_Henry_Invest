@@ -203,12 +203,10 @@ footer { visibility: hidden !important; }
 }
 
 /* 모바일: 새로고침 버튼 컬럼 숨김
-   ":has(> column:nth-child(2):last-child)" = 정확히 2컬럼 블록만 매칭
-   → 헤더행(2col)만 숨기고, 필터행(3col)은 영향 없음 */
+   st.columns([4,1])의 타이틀 컬럼만 inline style에 "flex: 4 1" 포함.
+   ~ (일반 형제 결합자)로 그 다음 컬럼(새로고침)을 타겟 → :has() 불필요 */
 @media (max-width: 640px) {
-    [data-testid="stHorizontalBlock"]:has(
-        > [data-testid="column"]:nth-child(2):last-child
-    ) > [data-testid="column"]:last-child {
+    [data-testid="column"][style*="flex: 4 1"] ~ [data-testid="column"] {
         display: none !important;
     }
 }
