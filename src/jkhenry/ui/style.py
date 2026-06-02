@@ -184,20 +184,35 @@ _BASE_CSS = """
 [data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
 
-/* 헤더 투명화 — 사이드바 토글 옆 빈 공간 제거 */
-[data-testid="stHeader"] {
+/* 헤더 투명화 — 사이드바 토글 옆 빈 공간 제거 (자식 요소 포함) */
+[data-testid="stHeader"],
+[data-testid="stHeader"] > div,
+[data-testid="stHeader"] > * {
     background: transparent !important;
+    background-color: transparent !important;
     border-bottom: none !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 
-/* 모바일: 헤더 잔여 UI 정리 */
+/* 모바일: 헤더 잔여 UI 정리 + 새로고침 버튼 숨김 */
 @media (max-width: 640px) {
-    [data-testid="stHeader"] { background: transparent !important; box-shadow: none !important; }
-    [data-testid="stToolbar"] { display: none !important; }
+    [data-testid="stHeader"],
+    [data-testid="stHeader"] > div,
+    [data-testid="stHeader"] > * {
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
+    [data-testid="stToolbar"]    { display: none !important; }
     [data-testid="stStatusWidget"] { display: none !important; }
+
+    /* 헤더 새로고침 버튼 컬럼 숨김 (첫 번째 가로블록의 마지막 컬럼) */
+    [data-testid="stHorizontalBlock"]:first-of-type
+        > [data-testid="column"]:last-of-type {
+        display: none !important;
+    }
 }
 
 /* 히어로 부제목 반응형 — 모바일은 짧은 버전 표시 */
