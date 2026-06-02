@@ -2,7 +2,6 @@
 """글로벌 CSS + HTML 컴포넌트. Glassmorphism + Bento Grid 디자인."""
 
 import streamlit as st
-from jkhenry.market.price_provider import clear_cache
 
 # ── CSS 변수 ──────────────────────────────────────────────────────────────────
 
@@ -354,10 +353,6 @@ def render_sidebar() -> None:
         st.page_link("pages/5_통계.py",               label="📊  통계")
         st.page_link("pages/6_포트폴리오_관리.py",    label="⚙️  포트폴리오 관리")
         st.divider()
-
-        if st.button("🔄 새로고침", use_container_width=True, key="__refresh__"):
-            clear_cache()
-            st.rerun()
 
         label = "☀️  라이트 모드" if theme == "dark" else "🌙  다크 모드"
         if st.button(label, use_container_width=True, key="__theme_toggle__"):
