@@ -74,8 +74,10 @@ for t in trades:
 col_cnt, col_csv = st.columns([3, 1])
 col_cnt.caption(f"총 **{len(trades)}건**  ·  행을 펼치면 수정/삭제 가능")
 if col_csv.button("📥 CSV", use_container_width=True):
-    csv = pd.DataFrame(rows_csv).to_csv(index=False, encoding="utf-8-sig")
-    st.download_button("다운로드", data=csv, file_name="trade_journal.csv", mime="text/csv")
+    # to_csv()를 경로 없이 호출하면 encoding 파라미터가 무시되어 BOM 없는 str 반환.
+    # .encode("utf-8-sig")로 bytes 변환해야 Excel에서 한글이 정상 표시됨.
+    csv_bytes = pd.DataFrame(rows_csv).to_csv(index=False).encode("utf-8-sig")
+    st.download_button("다운로드", data=csv_bytes, file_name="trade_journal.csv", mime="text/csv")
 
 gap(6)
 st.divider()
