@@ -75,13 +75,6 @@ _DARK_OVERRIDES = """
         #08101E !important;
 }
 
-/* 헤더 글라스 */
-[data-testid="stHeader"] {
-    background: rgba(8,16,30,0.80) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    border-bottom: 1px solid rgba(148,163,184,0.10) !important;
-}
 [data-testid="stDecoration"] { display:none !important; }
 #MainMenu { visibility: hidden !important; }
 
@@ -190,6 +183,15 @@ _BASE_CSS = """
 /* 네비게이션 숨김 */
 [data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
+
+/* 헤더 투명화 — 사이드바 토글 옆 빈 공간 제거 */
+[data-testid="stHeader"] {
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
 
 /* 레이아웃 */
 .block-container {
