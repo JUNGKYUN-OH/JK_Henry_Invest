@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import streamlit as st
 
-from jkhenry.market.price_provider import clear_cache, get_friday_close, get_price_data
+from jkhenry.market.price_provider import get_friday_close, get_price_data
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_pct, fmt_usd
@@ -29,26 +29,18 @@ render_sidebar()
 init_db()
 
 # ── 히어로 헤더 ────────────────────────────────────────────────────────────────
-# 타이틀(hc1)과 새로고침 버튼(hc2)을 같은 행에 배치.
-# 부제목은 컬럼 밖 전폭으로 분리 → 모바일에서 버튼에 가려지지 않음.
-hc1, hc2 = st.columns([4, 1])
-with hc1:
-    st.markdown("""
-    <div style="padding:4px 0 0 0;">
-        <div style="
-            font-size:1.55rem;font-weight:800;letter-spacing:-0.02em;
-            background:linear-gradient(135deg,var(--p1) 0%,var(--p2) 100%);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-            background-clip:text;display:inline-block;
-        ">💼 JK Henry Invest</div>
-    </div>
-    """, unsafe_allow_html=True)
-with hc2:
-    if st.button("🔄 새로고침", use_container_width=True):
-        clear_cache()
-        st.rerun()
+# 새로고침 버튼은 사이드바로 이동 → 모바일/데스크탑 모두 CSS 없이 해결
+st.markdown("""
+<div style="padding:4px 0 0 0;">
+    <div style="
+        font-size:1.55rem;font-weight:800;letter-spacing:-0.02em;
+        background:linear-gradient(135deg,var(--p1) 0%,var(--p2) 100%);
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+        background-clip:text;display:inline-block;
+    ">💼 JK Henry Invest</div>
+</div>
+""", unsafe_allow_html=True)
 
-# 부제목 — 전폭, 모바일에서 짧은 버전으로 전환
 st.markdown("""
 <div style="font-size:0.78rem;color:var(--muted);margin:-2px 0 4px 0;line-height:1.4;">
     <span class="hero-sub-full">IB (Infinite Buying) · VR (Value Rebalancing) 매매 가이드</span>

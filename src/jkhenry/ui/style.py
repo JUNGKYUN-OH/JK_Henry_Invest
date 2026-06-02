@@ -2,6 +2,7 @@
 """글로벌 CSS + HTML 컴포넌트. Glassmorphism + Bento Grid 디자인."""
 
 import streamlit as st
+from jkhenry.market.price_provider import clear_cache
 
 # ── CSS 변수 ──────────────────────────────────────────────────────────────────
 
@@ -202,15 +203,6 @@ footer { visibility: hidden !important; }
     fill: var(--text) !important;
 }
 
-/* 모바일: 새로고침 버튼 컬럼 숨김
-   st.columns([4,1])의 타이틀 컬럼만 inline style에 "flex: 4 1" 포함.
-   ~ (일반 형제 결합자)로 그 다음 컬럼(새로고침)을 타겟 → :has() 불필요 */
-@media (max-width: 640px) {
-    [data-testid="column"][style*="flex: 4 1"] ~ [data-testid="column"] {
-        display: none !important;
-    }
-}
-
 /* 히어로 부제목 반응형 — 모바일은 짧은 버전 표시 */
 .hero-sub-short { display: none; }
 @media (max-width: 640px) {
@@ -362,6 +354,10 @@ def render_sidebar() -> None:
         st.page_link("pages/5_통계.py",               label="📊  통계")
         st.page_link("pages/6_포트폴리오_관리.py",    label="⚙️  포트폴리오 관리")
         st.divider()
+
+        if st.button("🔄 새로고침", use_container_width=True, key="__refresh__"):
+            clear_cache()
+            st.rerun()
 
         label = "☀️  라이트 모드" if theme == "dark" else "🌙  다크 모드"
         if st.button(label, use_container_width=True, key="__theme_toggle__"):
