@@ -330,13 +330,25 @@ def inject_css() -> None:
     )
 
 
+def _is_auth_enabled() -> bool:
+    """secrets.toml에 [auth] 섹션이 있으면 인증 활성화 상태."""
+    try:
+        return "auth" in st.secrets
+    except Exception:
+        return False
+
+
 def render_sidebar() -> None:
-    """사이드바 내비게이션 + 테마 토글."""
+    """사이드바 내비게이션 + 테마 토글 + 사용자 정보(인증 활성화 시)."""
     theme = current_theme()
+    auth_on = _is_auth_enabled()
+    # 인증 비활성화(로컬 개발) 또는 로그인 상태 → 전체 네비게이션 표시
+    try:
+        logged_in = (not auth_on) or st.user.is_logged_in
+    except Exception:
+        logged_in = not auth_on
+
     with st.sidebar:
-        # 다크 모드에서 [stSidebarContent] * { color !important } 가 그라디언트 텍스트와
-        # 충돌해 텍스트가 투명해지는 문제를 방지하기 위해 color !important 인라인 스타일 사용.
-        # 인라인 !important 는 외부 CSS !important 보다 명시도(1-0-0-0)가 높아 항상 우선.
         brand_color = "#4F8EF7" if theme == "dark" else "#2563EB"
         st.markdown(
             f"<div style='"
@@ -346,21 +358,113 @@ def render_sidebar() -> None:
             unsafe_allow_html=True,
         )
         st.divider()
-        st.page_link("app.py",                        label="🏠  대시보드")
-        st.page_link("pages/1_포트폴리오_생성.py",    label="➕  새 포트폴리오")
-        st.page_link("pages/2_IB_가이드.py",          label="📈  IB 가이드")
-        st.page_link("pages/3_VR_가이드.py",          label="⚖️  VR 가이드")
-        st.page_link("pages/3_체결_입력.py",          label="✏️  체결 입력")
-        st.page_link("pages/4_매매_일지.py",          label="📋  매매 일지")
-        st.page_link("pages/5_통계.py",               label="📊  통계")
-        st.page_link("pages/6_포트폴리오_관리.py",    label="⚙️  포트폴리오 관리")
-        st.divider()
 
-        label = "☀️  라이트 모드" if theme == "dark" else "🌙  다크 모드"
-        if st.button(label, use_container_width=True, key="__theme_toggle__"):
-            st.session_state["theme"] = "light" if theme == "dark" else "dark"
-            st.rerun()
-        st.caption(f"현재: {'🌙 다크' if theme == 'dark' else '☀️ 라이트'}")
+        if logged_in:
+            st.page_link("app.py",                        label="🏠  대시보드")
+            st.page_link("pages/1_포트폴리오_생성.py",    label="➕  새 포트폴리오")
+            st.page_link("pages/2_IB_가이드.py",          label="📈  IB 가이드")
+            st.page_link("pages/3_VR_가이드.py",          label="⚖️  VR 가이드")
+            st.page_link("pages/3_체결_입력.py",          label="✏️  체결 입력")
+            st.page_link("pages/4_매매_일지.py",          label="📋  매매 일지")
+            st.page_link("pages/5_통계.py",               label="📊  통계")
+            st.page_link("pages/6_포트폴리오_관리.py",    label="⚙️  포트폴리오 관리")
+            st.divider()
+
+            label = "☀️  라이트 모드" if theme == "dark" else "🌙  다크 모드"
+            if st.button(label, use_container_width=True, key="__theme_toggle__"):
+                st.session_state["theme"] = "light" if theme == "dark" else "dark"
+                st.rerun()
+            st.caption(f"현재: {'🌙 다크' if theme == 'dark' else '☀️ 라이트'}")
+
+            # 로그인 사용자 정보 + 로그아웃 버튼
+            if auth_on:
+                st.divider()
+                try:
+                    name_display = st.user.name or st.user.email or "사용자"
+                except Exception:
+                    name_display = "사용자"
+                st.caption(f"👤 {name_display}")
+                if st.button("로그아웃", use_container_width=True, key="__logout__"):
+                    st.logout()
+        else:
+            # 미인증: 로그인 안내만 표시
+            st.caption("로그인 후 이용하실 수 있습니다.")
+            if st.button("🔑  Google로 로그인", use_container_width=True,
+                         type="primary", key="__sidebar_login__"):
+                st.login("google")
+
+
+def _render_login_page() -> None:
+    """미인증 사용자에게 보여지는 로그인 화면."""
+    _, center, _ = st.columns([1, 2, 1])
+    with center:
+        st.markdown(
+            '<div style="text-align:center;padding:44px 28px 28px;'
+            'background:var(--card);border:1px solid var(--glass-border);'
+            'border-radius:24px;backdrop-filter:var(--blur);'
+            '-webkit-backdrop-filter:var(--blur);'
+            'box-shadow:var(--shadow),var(--glass-inset);margin-top:60px;">'
+            '<div style="font-size:2.8rem;margin-bottom:14px;">💼</div>'
+            '<div style="font-size:1.4rem;font-weight:800;'
+            'background:linear-gradient(135deg,var(--p1),var(--p2));'
+            '-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
+            'background-clip:text;display:inline-block;margin-bottom:6px;">'
+            'JK Henry Invest</div>'
+            '<div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">'
+            'IB · VR 매매 가이드 &nbsp;·&nbsp; 로그인이 필요합니다'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+        gap(20)
+        if st.button("🔑  Google 계정으로 로그인",
+                     use_container_width=True, type="primary",
+                     key="__main_login__"):
+            st.login("google")
+
+
+def require_auth() -> None:
+    """Google OIDC 인증 게이트. inject_css() + render_sidebar() 직후에 호출.
+
+    - secrets.toml에 [auth] 섹션 없음 → 로컬 개발로 간주, 바이패스
+    - 미인증 → 로그인 화면 표시 후 st.stop()
+    - 화이트리스트에 없는 이메일 → 접근 거부 후 st.stop()
+    """
+    if not _is_auth_enabled():
+        return  # 로컬 개발 바이패스
+
+    try:
+        user = st.user
+        is_logged_in = user.is_logged_in
+    except Exception:
+        _render_login_page()
+        st.stop()
+        return
+
+    if not is_logged_in:
+        _render_login_page()
+        st.stop()
+        return
+
+    # 이메일 화이트리스트 확인
+    try:
+        allowed = list(st.secrets["allowed_users"]["emails"])
+    except Exception:
+        allowed = []
+
+    if allowed and user.email not in allowed:
+        st.markdown(
+            f'<div style="text-align:center;padding:60px 24px;">'
+            f'<div style="font-size:2.2rem;margin-bottom:16px;">⛔</div>'
+            f'<div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:8px;">'
+            f'접근 권한이 없습니다</div>'
+            f'<div style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;">'
+            f'로그인 계정: {user.email}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("로그아웃", type="primary", use_container_width=False):
+            st.logout()
+        st.stop()
 
 
 # ── HTML 컴포넌트 ─────────────────────────────────────────────────────────────

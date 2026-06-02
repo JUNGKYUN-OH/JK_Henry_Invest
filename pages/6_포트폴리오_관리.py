@@ -18,12 +18,13 @@ from jkhenry.repository.repositories import (
     update_portfolio_status,
 )
 from jkhenry.ui.components import strategy_badge
-from jkhenry.ui.style import C, gap, inject_css, page_header, render_sidebar, section_label, status_banner
+from jkhenry.ui.style import C, gap, inject_css, page_header, render_sidebar, require_auth, section_label, status_banner
 
 st.set_page_config(page_title="포트폴리오 관리", page_icon="⚙️", layout="centered",
                    initial_sidebar_state="expanded")
 inject_css()
 render_sidebar()
+require_auth()
 init_db()
 
 page_header("⚙️", "포트폴리오 관리", "수정 · 비활성화 · 삭제")

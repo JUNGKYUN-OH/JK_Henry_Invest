@@ -13,12 +13,13 @@ from jkhenry.market.price_provider import get_friday_close
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_usd, order_table, show_price_alert
-from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, section_label, status_banner
+from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, require_auth, section_label, status_banner
 
 st.set_page_config(page_title="VR 가이드", page_icon="⚖️", layout="centered",
                    initial_sidebar_state="expanded")
 inject_css()
 render_sidebar()
+require_auth()
 init_db()
 
 page_header("⚖️", "VR 가이드", "Value Rebalancing 매매 가이드")

@@ -12,12 +12,13 @@ import streamlit as st
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_pct, fmt_usd
-from jkhenry.ui.style import C, gap, inject_css, page_header, render_sidebar, section_label, status_banner
+from jkhenry.ui.style import C, gap, inject_css, page_header, render_sidebar, require_auth, section_label, status_banner
 
 st.set_page_config(page_title="수익률 통계", page_icon="📊", layout="centered",
                    initial_sidebar_state="expanded")
 inject_css()
 render_sidebar()
+require_auth()
 init_db()
 
 page_header("📊", "수익률 통계", "IB 사이클별 손익 분석")

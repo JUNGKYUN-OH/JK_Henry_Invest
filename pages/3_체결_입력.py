@@ -12,12 +12,13 @@ import streamlit as st
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_usd, strategy_badge
-from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, section_label
+from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, require_auth, section_label
 
 st.set_page_config(page_title="체결 입력", page_icon="✏️", layout="centered",
                    initial_sidebar_state="expanded")
 inject_css()
 render_sidebar()
+require_auth()
 init_db()
 
 page_header("✏️", "체결 기록 입력", "미체결 건은 입력하지 않습니다 — 해당 날짜 회차가 유지됩니다.")

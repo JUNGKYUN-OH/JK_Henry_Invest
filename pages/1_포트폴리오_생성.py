@@ -14,12 +14,13 @@ from jkhenry.market.price_provider import ticker_exists
 from jkhenry.repository.db import get_engine, get_session, init_db
 from jkhenry.repository.repositories import create_cycle, create_portfolio
 from jkhenry.ui.components import fmt_usd, strategy_badge
-from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, section_label, status_banner
+from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, require_auth, section_label, status_banner
 
 st.set_page_config(page_title="포트폴리오 생성", page_icon="➕", layout="centered",
                    initial_sidebar_state="expanded")
 inject_css()
 render_sidebar()
+require_auth()
 init_db()
 
 page_header("➕", "새 포트폴리오 생성")

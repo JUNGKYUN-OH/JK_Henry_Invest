@@ -15,7 +15,7 @@ from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_pct, fmt_usd
 from jkhenry.ui.style import (
     C, card_header, gap, inject_css, no_order_card,
-    order_card, render_sidebar, section_label, status_banner,
+    order_card, render_sidebar, require_auth, section_label, status_banner,
 )
 
 st.set_page_config(
@@ -26,6 +26,7 @@ st.set_page_config(
 )
 inject_css()
 render_sidebar()
+require_auth()
 init_db()
 
 # ── 히어로 헤더 ────────────────────────────────────────────────────────────────
