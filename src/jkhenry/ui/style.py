@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-"""글로벌 CSS + HTML 컴포넌트. 라이트/다크 테마 지원.
-
-전략:
-- config.toml = dark  →  다크 모드는 Streamlit 네이티브 위젯이 그대로 잘 보임
-- 라이트 모드 = CSS 오버라이드로 밝게 전환
-- 헤더(사이드바 토글 포함)는 절대 숨기지 않음
-"""
+"""글로벌 CSS + HTML 컴포넌트. Glassmorphism + Bento Grid 디자인."""
 
 import streamlit as st
 
@@ -14,34 +8,53 @@ import streamlit as st
 _VARS = {
     "dark": """
 :root {
-    --bg:    #0F172A; --card: #1E293B; --card2: #263348;
-    --border:rgba(148,163,184,0.12);
-    --text:  #F1F5F9; --muted:#94A3B8;
-    --ib:    #4F8EF7; --vr:   #A855F7;
-    --buy:   #10B981; --sell: #F59E0B;
-    --loss:  #EF4444; --info: #22D3EE;
-    --p1:    #4F8EF7; --p2:   #A855F7;
-    --shadow:0 4px 24px rgba(0,0,0,0.35);
+    --bg:     #08101E;
+    --card:   rgba(16,28,52,0.70);
+    --card2:  rgba(24,38,68,0.55);
+    --border: rgba(148,163,184,0.10);
+    --text:   #F1F5F9; --muted: #94A3B8;
+    --ib:     #4F8EF7; --vr:    #A855F7;
+    --buy:    #10B981; --sell:  #F59E0B;
+    --loss:   #EF4444; --info:  #22D3EE;
+    --p1:     #4F8EF7; --p2:    #A855F7;
+    --shadow:       0 8px 32px rgba(0,0,0,0.45);
+    --glass-bg:     rgba(16,28,52,0.62);
+    --glass-border: rgba(148,163,184,0.12);
+    --glass-inset:  inset 0 1px 0 rgba(255,255,255,0.06);
+    --blur:         blur(20px) saturate(180%);
 }""",
     "light": """
 :root {
-    --bg:    #F8FAFC; --card: #FFFFFF; --card2: #F1F5F9;
-    --border:rgba(15,23,42,0.09);
-    --text:  #0F172A; --muted:#64748B;
-    --ib:    #2563EB; --vr:   #7C3AED;
-    --buy:   #059669; --sell: #D97706;
-    --loss:  #DC2626; --info: #0284C7;
-    --p1:    #2563EB; --p2:   #7C3AED;
-    --shadow:0 2px 16px rgba(15,23,42,0.07);
+    --bg:     #EEF2FB;
+    --card:   rgba(255,255,255,0.74);
+    --card2:  rgba(248,250,252,0.80);
+    --border: rgba(15,23,42,0.09);
+    --text:   #0F172A; --muted: #64748B;
+    --ib:     #2563EB; --vr:    #7C3AED;
+    --buy:    #059669; --sell:  #D97706;
+    --loss:   #DC2626; --info:  #0284C7;
+    --p1:     #2563EB; --p2:    #7C3AED;
+    --shadow:       0 4px 24px rgba(15,23,42,0.10);
+    --glass-bg:     rgba(255,255,255,0.74);
+    --glass-border: rgba(255,255,255,0.85);
+    --glass-inset:  inset 0 1px 0 rgba(255,255,255,0.95);
+    --blur:         blur(20px) saturate(180%);
 }""",
 }
 
-# ── 라이트 모드: 보조 오버라이드 (config.toml이 이제 light 기반) ─────────────
-# primary 버튼 텍스트가 전역 p/span 규칙에 덮이는 것만 방지
+# ── 라이트 모드 오버라이드 ───────────────────────────────────────────────────
 
 _LIGHT_OVERRIDES = """
 [data-testid="stDecoration"] { display:none !important; }
 #MainMenu { visibility: hidden !important; }
+
+/* 그라디언트 메쉬 배경 */
+.stApp, [data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse 80% 60% at 5% 10%, rgba(37,99,235,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 70% at 95% 90%, rgba(124,58,237,0.08) 0%, transparent 60%),
+        #EEF2FB !important;
+}
 
 /* primary 버튼 텍스트 흰색 유지 */
 .stButton > button[kind="primary"] p,
@@ -51,15 +64,23 @@ _LIGHT_OVERRIDES = """
     color: #FFFFFF !important;
 }"""
 
-# ── 다크 모드: config.toml(light 기반) 위에 덮어씌우는 오버라이드 ───────────────
+# ── 다크 모드 오버라이드 ─────────────────────────────────────────────────────
 
 _DARK_OVERRIDES = """
-/* 앱 배경 */
-.stApp,
-[data-testid="stAppViewContainer"] { background-color: #0F172A !important; }
+/* 그라디언트 메쉬 배경 */
+.stApp, [data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse 80% 60% at 5% 10%, rgba(79,142,247,0.09) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 70% at 95% 90%, rgba(168,85,247,0.09) 0%, transparent 60%),
+        #08101E !important;
+}
+
+/* 헤더 글라스 */
 [data-testid="stHeader"] {
-    background-color: #0F172A !important;
-    border-bottom: 1px solid rgba(148,163,184,0.1) !important;
+    background: rgba(8,16,30,0.80) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(148,163,184,0.10) !important;
 }
 [data-testid="stDecoration"] { display:none !important; }
 #MainMenu { visibility: hidden !important; }
@@ -67,8 +88,10 @@ _DARK_OVERRIDES = """
 /* 사이드바 */
 section[data-testid="stSidebar"],
 [data-testid="stSidebarContent"] {
-    background-color: #1E293B !important;
-    border-right: 1px solid rgba(148,163,184,0.1) !important;
+    background: rgba(10,18,34,0.90) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-right: 1px solid rgba(148,163,184,0.08) !important;
 }
 [data-testid="stSidebarContent"] * { color: #F1F5F9 !important; }
 [data-testid="stSidebarCollapsedControl"] svg { color: #F1F5F9 !important; }
@@ -84,32 +107,32 @@ h1, h2, h3, h4, h5, h6 { color: #F1F5F9 !important; }
 
 /* 컨테이너·카드 */
 [data-testid="stVerticalBlockBorderWrapper"] > div {
-    background-color: #1E293B !important;
+    background: rgba(16,28,52,0.62) !important;
     border-color: rgba(148,163,184,0.12) !important;
 }
 
 /* Expander */
 [data-testid="stExpander"] {
-    background-color: #263348 !important;
+    background: rgba(24,38,68,0.55) !important;
     border-color: rgba(148,163,184,0.12) !important;
 }
 [data-testid="stExpander"] summary,
 [data-testid="stExpanderDetails"] {
-    background-color: #263348 !important;
+    background: transparent !important;
     color: #F1F5F9 !important;
 }
 
 /* 버튼 */
 .stButton > button {
-    background-color: #1E293B !important;
+    background: rgba(16,28,52,0.80) !important;
     color: #F1F5F9 !important;
-    border: 1px solid rgba(148,163,184,0.2) !important;
+    border: 1px solid rgba(148,163,184,0.18) !important;
 }
 .stButton > button[kind="primary"],
 .stButton > button[data-testid*="primary"] {
-    background-color: #4F8EF7 !important;
+    background: linear-gradient(135deg, #4F8EF7, #A855F7) !important;
     color: #FFFFFF !important;
-    border-color: #4F8EF7 !important;
+    border: none !important;
 }
 .stButton > button[kind="primary"] p,
 .stButton > button[kind="primary"] span,
@@ -122,16 +145,16 @@ h1, h2, h3, h4, h5, h6 { color: #F1F5F9 !important; }
 .stTextInput input,
 .stNumberInput input,
 .stDateInput input {
-    background-color: #1E293B !important;
+    background: rgba(16,28,52,0.80) !important;
     color: #F1F5F9 !important;
-    border-color: rgba(148,163,184,0.2) !important;
+    border-color: rgba(148,163,184,0.20) !important;
 }
 
 /* Selectbox */
 .stSelectbox > div > div {
-    background-color: #1E293B !important;
+    background: rgba(16,28,52,0.80) !important;
     color: #F1F5F9 !important;
-    border-color: rgba(148,163,184,0.2) !important;
+    border-color: rgba(148,163,184,0.20) !important;
 }
 
 /* Radio */
@@ -139,7 +162,7 @@ h1, h2, h3, h4, h5, h6 { color: #F1F5F9 !important; }
 
 /* Form */
 [data-testid="stForm"] {
-    background-color: transparent !important;
+    background: transparent !important;
     border-color: rgba(148,163,184,0.12) !important;
 }
 
@@ -148,12 +171,12 @@ h1, h2, h3, h4, h5, h6 { color: #F1F5F9 !important; }
 [data-testid="stSuccess"],
 [data-testid="stWarning"],
 [data-testid="stError"] {
-    background-color: #263348 !important;
+    background: rgba(24,38,68,0.55) !important;
     color: #F1F5F9 !important;
 }
 
 /* Dataframe */
-[data-testid="stDataFrame"] iframe { background-color: #1E293B !important; }
+[data-testid="stDataFrame"] iframe { background: rgba(16,28,52,0.80) !important; }
 
 /* Divider */
 hr { border-color: rgba(148,163,184,0.12) !important; }
@@ -161,21 +184,34 @@ hr { border-color: rgba(148,163,184,0.12) !important; }
 /* Page link */
 [data-testid="stPageLink"] a { color: #4F8EF7 !important; }"""
 
-# ── 공통 CSS (테마 무관) ───────────────────────────────────────────────────────
+# ── 공통 CSS ──────────────────────────────────────────────────────────────────
 
 _BASE_CSS = """
-/* Streamlit 자동 생성 페이지 내비게이션 숨김 (커스텀 사이드바로 대체) */
+/* 네비게이션 숨김 */
 [data-testid="stSidebarNav"] { display: none !important; }
-
-/* footer 숨김 */
 footer { visibility: hidden !important; }
 
-/* 레이아웃 - 상단 패딩을 충분히 줘서 Streamlit 헤더바와 겹치지 않게 */
+/* 레이아웃 */
 .block-container {
     padding-top: 2.5rem !important;
-    padding-bottom: 2rem !important;
-    max-width: 860px !important;
+    padding-bottom: 2.5rem !important;
+    max-width: 920px !important;
     margin: 0 auto;
+}
+
+/* ── Glassmorphism: Streamlit 보더 컨테이너 ── */
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    border-radius: 20px !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: var(--shadow), var(--glass-inset) !important;
+    transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+@supports (backdrop-filter: blur(1px)) {
+    [data-testid="stVerticalBlockBorderWrapper"] > div {
+        backdrop-filter: var(--blur) !important;
+        -webkit-backdrop-filter: var(--blur) !important;
+    }
 }
 
 /* 진행률 바 */
@@ -196,20 +232,32 @@ footer { visibility: hidden !important; }
     color: var(--text) !important;
 }
 
-/* 버튼 공통 */
+/* ── 버튼 ── */
 .stButton > button {
     border-radius: 10px !important;
     font-weight: 600 !important;
     font-size: 0.85rem !important;
-    transition: opacity 0.15s, transform 0.1s !important;
+    transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s !important;
 }
 .stButton > button:hover {
-    opacity: 0.85 !important; transform: translateY(-1px) !important;
+    opacity: 0.88 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18) !important;
+}
+
+/* Primary 버튼 그라디언트 */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, var(--p1) 0%, var(--p2) 100%) !important;
+    border: none !important;
+    box-shadow: 0 2px 14px rgba(79,142,247,0.28) !important;
+}
+.stButton > button[kind="primary"]:hover {
+    box-shadow: 0 6px 24px rgba(79,142,247,0.40) !important;
 }
 
 /* Expander */
 [data-testid="stExpander"] {
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     border: 1px solid var(--border) !important;
     background: var(--card2) !important;
 }
@@ -222,33 +270,24 @@ footer { visibility: hidden !important; }
     border: none !important; padding: 0 !important; background: transparent !important;
 }
 
-/* 카드 컨테이너 */
-[data-testid="stVerticalBlockBorderWrapper"] > div {
-    border-radius: 16px !important;
-    background-color: var(--card) !important;
-    border-color: var(--border) !important;
-    box-shadow: var(--shadow) !important;
-}
-
 /* Divider */
 hr { border-color: var(--border) !important; margin: 0.75rem 0 !important; }
 
 /* Caption */
 [data-testid="stCaptionContainer"] { color: var(--muted) !important; }
 
-/* 모바일 반응형 */
+/* 모바일 */
 @media (max-width: 640px) {
     .block-container {
         padding-left: 0.75rem !important;
         padding-right: 0.75rem !important;
     }
-    /* 포트폴리오 그리드: 3열 → 1열 */
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 0 !important; }
     [data-testid="column"] { flex: 0 0 100% !important; min-width: 100% !important; }
     [data-testid="stMetricValue"] { font-size: 0.95rem !important; }
 }
 
-/* 태블릿: 3열 → 2열 */
+/* 태블릿 */
 @media (min-width: 641px) and (max-width: 860px) {
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
     [data-testid="column"] { flex: 0 0 50% !important; min-width: 50% !important; }
@@ -263,7 +302,7 @@ def current_theme() -> str:
 
 
 def inject_css() -> None:
-    """모든 페이지 최상단에서 호출. 현재 테마 CSS를 주입한다."""
+    """모든 페이지 최상단에서 호출."""
     theme = current_theme()
     extra = _DARK_OVERRIDES if theme == "dark" else _LIGHT_OVERRIDES
     st.markdown(
@@ -276,9 +315,14 @@ def render_sidebar() -> None:
     """사이드바 내비게이션 + 테마 토글."""
     theme = current_theme()
     with st.sidebar:
+        brand_color = "linear-gradient(135deg,#4F8EF7,#A855F7)" if theme == "dark" else "linear-gradient(135deg,#2563EB,#7C3AED)"
         st.markdown(
-            "<div style='font-size:1.1rem;font-weight:800;padding:6px 0 2px 0;'>"
-            "💼 JK Henry Invest</div>",
+            f"<div style='"
+            f"font-size:1.1rem;font-weight:800;padding:8px 0 4px 0;"
+            f"background:{brand_color};"
+            f"-webkit-background-clip:text;-webkit-text-fill-color:transparent;"
+            f"background-clip:text;"
+            f"'>💼 JK Henry Invest</div>",
             unsafe_allow_html=True,
         )
         st.divider()
@@ -302,17 +346,33 @@ def render_sidebar() -> None:
 # ── HTML 컴포넌트 ─────────────────────────────────────────────────────────────
 
 def card_header(ticker: str, strategy: str, name: str = "") -> None:
-    color = "var(--ib)" if strategy == "IB" else "var(--vr)"
-    full  = "IB · Infinite Buying" if strategy == "IB" else "VR · Value Rebalancing"
-    sub   = (f'<span style="color:var(--muted);font-size:0.8rem;margin-left:6px;">{name}</span>'
-             if name else "")
+    color  = "var(--ib)" if strategy == "IB" else "var(--vr)"
+    color2 = "var(--p1)" if strategy == "IB" else "var(--p2)"
+    full   = "IB · Infinite Buying" if strategy == "IB" else "VR · Value Rebalancing"
+    sub    = (f'<span style="color:var(--muted);font-size:0.78rem;margin-left:8px;">{name}</span>'
+              if name else "")
     st.markdown(f"""
-    <div style="border-left:3px solid {color};padding-left:12px;margin-bottom:14px;">
+    <div style="
+        position:relative;
+        background:linear-gradient(135deg,{color}18,{color}06);
+        border:1px solid {color}30;
+        border-left:4px solid {color};
+        border-radius:16px;
+        padding:14px 18px;
+        margin-bottom:18px;
+        backdrop-filter:blur(8px);
+        -webkit-backdrop-filter:blur(8px);
+        overflow:hidden;
+    ">
+        <div style="position:absolute;top:0;right:0;width:120px;height:120px;
+                    background:radial-gradient(circle,{color}14 0%,transparent 70%);
+                    pointer-events:none;"></div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;
+            <span style="font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;
                          color:var(--text);">{ticker}</span>
-            <span style="background:{color}22;color:{color};font-size:0.7rem;font-weight:700;
-                         padding:3px 10px;border-radius:20px;letter-spacing:0.05em;">{full}</span>
+            <span style="background:{color}20;color:{color};font-size:0.70rem;font-weight:700;
+                         padding:4px 12px;border-radius:20px;letter-spacing:0.05em;
+                         border:1px solid {color}30;">{full}</span>
             {sub}
         </div>
     </div>
@@ -323,26 +383,37 @@ def order_card(label: str, price, shares, amount, order_type: str, side: str = "
     color = "var(--buy)" if side == "BUY" else "var(--sell)"
     icon  = "📥" if side == "BUY" else "📤"
     st.markdown(f"""
-    <div style="background:{color}11;border:1px solid {color}33;
-                border-radius:12px;padding:12px 14px;margin:6px 0;">
-        <div style="margin-bottom:8px;">
-            <span style="font-weight:700;color:{color};font-size:0.82rem;">{icon} {label}</span>
+    <div style="
+        background:linear-gradient(135deg,{color}12,{color}05);
+        border:1px solid {color}28;
+        border-left:3px solid {color};
+        border-radius:14px;
+        padding:14px 16px;
+        margin:6px 0;
+        backdrop-filter:blur(8px);
+        -webkit-backdrop-filter:blur(8px);
+    ">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:700;color:{color};font-size:0.84rem;">{icon} {label}</span>
+            <span style="font-size:0.66rem;color:var(--muted);
+                         background:var(--card2);border:1px solid var(--border);
+                         padding:2px 9px;border-radius:20px;">{order_type}</span>
         </div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
             <div>
-                <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;
-                             letter-spacing:0.05em;margin-bottom:2px;">주문가격</div>
-                <div style="font-size:1.05rem;font-weight:700;color:var(--text);">${float(price):,.2f}</div>
+                <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;
+                             letter-spacing:0.07em;margin-bottom:3px;">주문가격</div>
+                <div style="font-size:1.0rem;font-weight:700;color:var(--text);">${float(price):,.2f}</div>
             </div>
             <div>
-                <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;
-                             letter-spacing:0.05em;margin-bottom:2px;">수량</div>
-                <div style="font-size:1.05rem;font-weight:700;color:var(--text);">{float(shares):.2f}주</div>
+                <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;
+                             letter-spacing:0.07em;margin-bottom:3px;">수량</div>
+                <div style="font-size:1.0rem;font-weight:700;color:var(--text);">{float(shares):.2f}주</div>
             </div>
             <div>
-                <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;
-                             letter-spacing:0.05em;margin-bottom:2px;">금액</div>
-                <div style="font-size:1.05rem;font-weight:700;color:{color};">${float(amount):,.2f}</div>
+                <div style="font-size:0.60rem;color:var(--muted);text-transform:uppercase;
+                             letter-spacing:0.07em;margin-bottom:3px;">금액</div>
+                <div style="font-size:1.0rem;font-weight:700;color:{color};">${float(amount):,.2f}</div>
             </div>
         </div>
     </div>
@@ -351,9 +422,17 @@ def order_card(label: str, price, shares, amount, order_type: str, side: str = "
 
 def no_order_card(message: str) -> None:
     st.markdown(f"""
-    <div style="background:var(--card2);border:1px solid var(--border);
-                border-radius:12px;padding:14px;color:var(--muted);
-                font-size:0.85rem;text-align:center;">{message}</div>
+    <div style="
+        background:var(--card2);
+        border:1px dashed var(--border);
+        border-radius:14px;
+        padding:18px;
+        color:var(--muted);
+        font-size:0.85rem;
+        text-align:center;
+        backdrop-filter:blur(8px);
+        -webkit-backdrop-filter:blur(8px);
+    ">{message}</div>
     """, unsafe_allow_html=True)
 
 
@@ -364,19 +443,29 @@ def status_banner(message: str, kind: str = "info") -> None:
     }
     color = colors.get(kind, "var(--info)")
     st.markdown(f"""
-    <div style="background:{color}14;border:1px solid {color}40;
-                border-radius:10px;padding:10px 14px;
-                font-size:0.85rem;font-weight:500;color:{color};margin:6px 0;">
-        {message}
-    </div>
+    <div style="
+        background:{color}10;
+        border:1px solid {color}28;
+        border-left:3px solid {color};
+        border-radius:10px;
+        padding:10px 14px;
+        font-size:0.85rem;font-weight:500;
+        color:{color};margin:6px 0;
+        backdrop-filter:blur(8px);
+        -webkit-backdrop-filter:blur(8px);
+    ">{message}</div>
     """, unsafe_allow_html=True)
 
 
 def section_label(text: str) -> None:
     st.markdown(f"""
-    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
-                letter-spacing:0.08em;color:var(--muted);margin:14px 0 6px 0;">
-        {text}
+    <div style="display:flex;align-items:center;gap:8px;margin:18px 0 8px 0;">
+        <div style="
+            width:3px;height:16px;border-radius:2px;flex-shrink:0;
+            background:linear-gradient(180deg,var(--p1),var(--p2));
+        "></div>
+        <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                     letter-spacing:0.08em;color:var(--muted);">{text}</span>
     </div>
     """, unsafe_allow_html=True)
 

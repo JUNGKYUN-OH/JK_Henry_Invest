@@ -1,4 +1,4 @@
-"""대시보드 — 컴팩트 그리드 요약 + 선택 포트폴리오 상세."""
+"""대시보드 — Bento Grid + Glassmorphism 디자인."""
 
 import sys
 from datetime import date
@@ -28,15 +28,22 @@ inject_css()
 render_sidebar()
 init_db()
 
-# ── 헤더 ───────────────────────────────────────────────────────────────────────
-hc1, hc2 = st.columns([3, 1])
+# ── 히어로 헤더 ────────────────────────────────────────────────────────────────
+hc1, hc2 = st.columns([4, 1])
 with hc1:
-    st.markdown(
-        "<h2 style='margin:0 0 2px 0;font-weight:800;'>💼 JK Henry Invest</h2>"
-        "<span style='font-size:0.78rem;color:var(--muted);'>"
-        "IB (Infinite Buying) · VR (Value Rebalancing) 매매 가이드</span>",
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+    <div style="padding:4px 0 2px 0;">
+        <div style="
+            font-size:1.55rem;font-weight:800;letter-spacing:-0.02em;
+            background:linear-gradient(135deg,var(--p1) 0%,var(--p2) 100%);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            background-clip:text;display:inline-block;
+        ">💼 JK Henry Invest</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">
+            IB (Infinite Buying) · VR (Value Rebalancing) 매매 가이드
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 with hc2:
     if st.button("🔄 새로고침", use_container_width=True):
         clear_cache()
@@ -48,11 +55,17 @@ svc = GuideService()
 portfolios = svc.list_portfolios()
 
 if not portfolios:
-    st.markdown(f"""
-    <div style="text-align:center;padding:48px 24px;color:var(--muted);">
-        <div style="font-size:2.5rem;margin-bottom:12px;">📭</div>
-        <div style="font-size:1rem;font-weight:600;margin-bottom:6px;">포트폴리오가 없습니다</div>
-        <div style="font-size:0.85rem;">사이드바 ➕ 새 포트폴리오를 눌러 시작하세요.</div>
+    st.markdown("""
+    <div style="
+        text-align:center;padding:56px 24px;
+        background:var(--card);border:1px solid var(--glass-border);
+        border-radius:24px;backdrop-filter:var(--blur);
+        -webkit-backdrop-filter:var(--blur);
+        box-shadow:var(--shadow),var(--glass-inset);
+    ">
+        <div style="font-size:2.8rem;margin-bottom:14px;">📭</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:6px;">포트폴리오가 없습니다</div>
+        <div style="font-size:0.85rem;color:var(--muted);">사이드바 ➕ 새 포트폴리오를 눌러 시작하세요.</div>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
@@ -61,7 +74,7 @@ if not portfolios:
 if "selected_pid" not in st.session_state:
     st.session_state["selected_pid"] = portfolios[0].id
 
-# ── 전략 필터 (IB/VR 혼재 시에만 표시) ───────────────────────────────────────
+# ── 전략 필터 ─────────────────────────────────────────────────────────────────
 _ib_cnt = sum(1 for p in portfolios if p.strategy == "IB")
 _vr_cnt = sum(1 for p in portfolios if p.strategy == "VR")
 _has_both = _ib_cnt > 0 and _vr_cnt > 0
@@ -72,7 +85,6 @@ if _has_both:
     _filter = st.session_state["dash_filter"]
 
     def _apply_filter(new_filter: str) -> None:
-        """필터 변경 + 필터 결과 첫 항목 자동 선택."""
         st.session_state["dash_filter"] = new_filter
         if new_filter == "IB":
             candidates = [p for p in portfolios if p.strategy == "IB"]
@@ -99,8 +111,9 @@ if _has_both:
                      type="primary" if _filter == "VR" else "secondary"):
             _apply_filter("VR")
             st.rerun()
+    gap(8)
 else:
-    _filter = "전체"  # 필터 비활성 → 전체 표시
+    _filter = "전체"
 
 
 # ── 컴팩트 요약 카드 데이터 수집 ───────────────────────────────────────────────
@@ -139,8 +152,8 @@ def _get_card_data(p):
                     status_color=status_color, pnl_color=pnl_color,
                     price_data=price_data)
 
-    else:  # VR — 항상 직전 금요일 종가 기준
-        friday_data = get_friday_close(p.ticker)
+    else:  # VR
+        friday_data  = get_friday_close(p.ticker)
         friday_price = Decimal(str(friday_data["close"])) if friday_data else current
 
         snap  = svc.get_vr_snapshot(p.id)
@@ -154,47 +167,66 @@ def _get_card_data(p):
         fri_label = (f"{friday_data['date'].month}/{friday_data['date'].day} 금"
                      if friday_data else "금 종가")
         metrics = [
-            ("목표값 V",           fmt_usd(guide.v_target)),
-            ("평가금액 E",          fmt_usd(guide.e_value)),
-            (fri_label,            fmt_usd(friday_price) if friday_price else "—"),
-            ("현금 C",             fmt_usd(guide.cash_balance)),
+            ("목표값 V",  fmt_usd(guide.v_target)),
+            ("평가금액 E", fmt_usd(guide.e_value)),
+            (fri_label,   fmt_usd(friday_price) if friday_price else "—"),
+            ("현금 C",    fmt_usd(guide.cash_balance)),
         ]
         return dict(metrics=metrics, status_icon=action_icon,
                     status_color=action_color, pnl_color=action_color,
                     price_data=price_data)
 
 
-# ── 컴팩트 카드 렌더 함수 ──────────────────────────────────────────────────────
+# ── Bento 카드 렌더 함수 ───────────────────────────────────────────────────────
 def _render_compact_card(p, card_data):
     is_sel  = st.session_state["selected_pid"] == p.id
     color   = "var(--ib)" if p.strategy == "IB" else "var(--vr)"
     strat   = "IB" if p.strategy == "IB" else "VR"
-    border  = f"2px solid {color}" if is_sel else "1px solid var(--border)"
-    bg      = f"{color}0d" if is_sel else "var(--card)"
     metrics = card_data["metrics"]
 
+    # 선택 상태별 스타일
+    border  = f"2px solid {color}" if is_sel else "1px solid var(--glass-border)"
+    bg      = f"linear-gradient(135deg,{color}18,{color}06)" if is_sel else "var(--card)"
+    glow    = f"0 0 24px {color}35, var(--shadow), var(--glass-inset)" if is_sel else "var(--shadow), var(--glass-inset)"
+
+    # 상단 accent bar (선택 시)
+    accent_bar = (
+        f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
+        f'border-radius:18px 18px 0 0;'
+        f'background:linear-gradient(90deg,{color},{color}55);"></div>'
+        if is_sel else ""
+    )
+
     rows_html = "".join(
-        f'<div style="display:flex;justify-content:space-between;'
-        f'padding:3px 0;border-bottom:1px solid var(--border);">'
-        f'<span style="color:var(--muted);font-size:0.72rem;">{lbl}</span>'
-        f'<span style="font-weight:700;font-size:0.8rem;">{val}</span>'
+        f'<div style="display:flex;justify-content:space-between;align-items:center;'
+        f'padding:4px 0;border-bottom:1px solid var(--border);">'
+        f'<span style="color:var(--muted);font-size:0.69rem;">{lbl}</span>'
+        f'<span style="font-weight:700;font-size:0.78rem;color:var(--text);">{val}</span>'
         f'</div>'
         for lbl, val in metrics
     )
 
     st.markdown(f"""
-    <div style="background:{bg};border:{border};border-radius:14px;
-                padding:12px 14px;box-shadow:var(--shadow);">
-        <div style="display:flex;justify-content:space-between;
-                    align-items:center;margin-bottom:8px;">
-            <div>
-                <span style="font-size:1.1rem;font-weight:800;
-                             color:var(--text);">{p.ticker}</span>
-                <span style="font-size:0.62rem;color:{color};font-weight:700;
-                             background:{color}22;padding:2px 7px;
-                             border-radius:20px;margin-left:6px;">{strat}</span>
+    <div style="
+        position:relative;overflow:hidden;
+        background:{bg};border:{border};border-radius:18px;
+        padding:15px 14px 12px;
+        box-shadow:{glow};
+        backdrop-filter:var(--blur);
+        -webkit-backdrop-filter:var(--blur);
+        transition:transform 0.18s ease,box-shadow 0.18s ease;
+    ">
+        {accent_bar}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span style="font-size:1.12rem;font-weight:800;color:var(--text);">{p.ticker}</span>
+                <span style="
+                    font-size:0.60rem;color:{color};font-weight:700;
+                    background:{color}1A;padding:2px 8px;border-radius:20px;
+                    border:1px solid {color}28;letter-spacing:0.04em;
+                ">{strat}</span>
             </div>
-            <span style="font-size:1.1rem;">{card_data['status_icon']}</span>
+            <span style="font-size:1.15rem;">{card_data['status_icon']}</span>
         </div>
         {rows_html}
     </div>
@@ -208,14 +240,23 @@ def _render_compact_card(p, card_data):
         st.rerun()
 
 
-# ── 컴팩트 그리드 (3열) ────────────────────────────────────────────────────────
-# 필터 적용: 그리드에만 사용 (상세 섹션은 selected_pid 기준 독립)
+# ── Bento 포트폴리오 그리드 ────────────────────────────────────────────────────
 if _filter == "IB":
     display_portfolios = [p for p in portfolios if p.strategy == "IB"]
 elif _filter == "VR":
     display_portfolios = [p for p in portfolios if p.strategy == "VR"]
 else:
     display_portfolios = portfolios
+
+# 섹션 레이블
+st.markdown("""
+<div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px 0;">
+    <div style="width:3px;height:16px;border-radius:2px;flex-shrink:0;
+                background:linear-gradient(180deg,var(--p1),var(--p2));"></div>
+    <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;color:var(--muted);">포트폴리오</span>
+</div>
+""", unsafe_allow_html=True)
 
 if not display_portfolios:
     st.info("해당 전략 포트폴리오가 없습니다.")
@@ -227,8 +268,15 @@ else:
             data = _get_card_data(p)
             _render_compact_card(p, data)
 
-gap(4)
-st.divider()
+gap(8)
+
+# 얇은 그라디언트 구분선
+st.markdown("""
+<div style="
+    height:1px;margin:12px 0 18px 0;
+    background:linear-gradient(90deg,transparent,var(--p1)40,var(--p2)40,transparent);
+"></div>
+""", unsafe_allow_html=True)
 
 # ── 선택된 포트폴리오 상세 ────────────────────────────────────────────────────
 selected_pid = st.session_state.get("selected_pid")
@@ -237,13 +285,20 @@ sel_p = next((x for x in portfolios if x.id == selected_pid), None)
 if not sel_p:
     st.stop()
 
-# 현재 필터와 다른 전략이 상세에 표시될 때 안내
+# 상세 섹션 레이블
+st.markdown("""
+<div style="display:flex;align-items:center;gap:8px;margin:0 0 14px 0;">
+    <div style="width:3px;height:16px;border-radius:2px;flex-shrink:0;
+                background:linear-gradient(180deg,var(--p1),var(--p2));"></div>
+    <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;color:var(--muted);">상세 분석</span>
+</div>
+""", unsafe_allow_html=True)
 
 price_data    = get_price_data(sel_p.ticker)
 prev_close    = Decimal(str(price_data["prev_close"])) if price_data else None
 current_price = Decimal(str(price_data["current"]))    if price_data else None
 
-# VR용: 직전 금요일 종가 별도 조회
 friday_data  = get_friday_close(sel_p.ticker) if sel_p.strategy == "VR" else None
 friday_price = Decimal(str(friday_data["close"])) if friday_data else current_price
 
@@ -298,8 +353,8 @@ if sel_p.strategy == "IB":
     buy_col, sell_col = st.columns(2)
 
     with buy_col:
-        st.markdown(f"<div style='font-size:0.8rem;font-weight:700;"
-                    f"color:var(--buy);margin-bottom:4px;'>📥 매수 주문</div>",
+        st.markdown("<div style='font-size:0.8rem;font-weight:700;"
+                    "color:var(--buy);margin-bottom:4px;'>📥 매수 주문</div>",
                     unsafe_allow_html=True)
         if guide.buy_orders:
             for o in guide.buy_orders:
@@ -310,8 +365,8 @@ if sel_p.strategy == "IB":
             no_order_card("오늘 매수 없음")
 
     with sell_col:
-        st.markdown(f"<div style='font-size:0.8rem;font-weight:700;"
-                    f"color:var(--sell);margin-bottom:4px;'>📤 매도 After 지정가 (상시 유지)</div>",
+        st.markdown("<div style='font-size:0.8rem;font-weight:700;"
+                    "color:var(--sell);margin-bottom:4px;'>📤 매도 After 지정가 (상시 유지)</div>",
                     unsafe_allow_html=True)
         sell = guide.sell_order
         if float(sell.shares) > 0:
