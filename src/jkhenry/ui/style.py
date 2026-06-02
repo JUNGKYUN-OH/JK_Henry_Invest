@@ -333,13 +333,14 @@ def render_sidebar() -> None:
     """사이드바 내비게이션 + 테마 토글."""
     theme = current_theme()
     with st.sidebar:
-        brand_color = "linear-gradient(135deg,#4F8EF7,#A855F7)" if theme == "dark" else "linear-gradient(135deg,#2563EB,#7C3AED)"
+        # 다크 모드에서 [stSidebarContent] * { color !important } 가 그라디언트 텍스트와
+        # 충돌해 텍스트가 투명해지는 문제를 방지하기 위해 color !important 인라인 스타일 사용.
+        # 인라인 !important 는 외부 CSS !important 보다 명시도(1-0-0-0)가 높아 항상 우선.
+        brand_color = "#4F8EF7" if theme == "dark" else "#2563EB"
         st.markdown(
             f"<div style='"
             f"font-size:1.1rem;font-weight:800;padding:8px 0 4px 0;"
-            f"background:{brand_color};"
-            f"-webkit-background-clip:text;-webkit-text-fill-color:transparent;"
-            f"background-clip:text;"
+            f"color:{brand_color} !important;"
             f"'>💼 JK Henry Invest</div>",
             unsafe_allow_html=True,
         )
