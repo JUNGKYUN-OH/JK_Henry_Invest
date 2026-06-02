@@ -55,6 +55,8 @@ _LIGHT_OVERRIDES = """
         radial-gradient(ellipse 70% 70% at 95% 90%, rgba(124,58,237,0.08) 0%, transparent 60%),
         #EEF2FB !important;
 }
+/* 라이트 모드 헤더 배경 (BASE_CSS의 var(--bg) 보강) */
+[data-testid="stHeader"] { background-color: #EEF2FB !important; }
 
 /* primary 버튼 텍스트 흰색 유지 */
 .stButton > button[kind="primary"] p,
@@ -74,6 +76,8 @@ _DARK_OVERRIDES = """
         radial-gradient(ellipse 70% 70% at 95% 90%, rgba(168,85,247,0.09) 0%, transparent 60%),
         #08101E !important;
 }
+/* 다크 모드 헤더 배경 (BASE_CSS의 var(--bg) 보강) */
+[data-testid="stHeader"] { background-color: #08101E !important; }
 
 [data-testid="stDecoration"] { display:none !important; }
 #MainMenu { visibility: hidden !important; }
@@ -184,33 +188,27 @@ _BASE_CSS = """
 [data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
 
-/* 헤더 투명화 — 사이드바 토글 옆 빈 공간 제거 (자식 요소 포함) */
-[data-testid="stHeader"],
-[data-testid="stHeader"] > div,
-[data-testid="stHeader"] > * {
-    background: transparent !important;
-    background-color: transparent !important;
+/* 헤더: 앱 배경색과 동일하게 설정 → 흰 공간 제거
+   (transparent는 Streamlit 내부 CSS에 덮여 효과 없음) */
+[data-testid="stHeader"] {
+    background-color: var(--bg) !important;
     border-bottom: none !important;
     box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
 }
 
-/* 모바일: 헤더 잔여 UI 정리 + 새로고침 버튼 숨김 */
-@media (max-width: 640px) {
-    [data-testid="stHeader"],
-    [data-testid="stHeader"] > div,
-    [data-testid="stHeader"] > * {
-        background: transparent !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
-    }
-    [data-testid="stToolbar"]    { display: none !important; }
-    [data-testid="stStatusWidget"] { display: none !important; }
+/* 사이드바 토글 아이콘 — 배경이 바뀌어도 항상 가시화 */
+[data-testid="stSidebarCollapsedControl"] button svg {
+    color: var(--text) !important;
+    fill: var(--text) !important;
+}
 
-    /* 헤더 새로고침 버튼 컬럼 숨김 (첫 번째 가로블록의 마지막 컬럼) */
-    [data-testid="stHorizontalBlock"]:first-of-type
-        > [data-testid="column"]:last-of-type {
+/* 모바일: 새로고침 버튼 컬럼 숨김
+   ":has(> column:nth-child(2):last-child)" = 정확히 2컬럼 블록만 매칭
+   → 헤더행(2col)만 숨기고, 필터행(3col)은 영향 없음 */
+@media (max-width: 640px) {
+    [data-testid="stHorizontalBlock"]:has(
+        > [data-testid="column"]:nth-child(2):last-child
+    ) > [data-testid="column"]:last-child {
         display: none !important;
     }
 }
