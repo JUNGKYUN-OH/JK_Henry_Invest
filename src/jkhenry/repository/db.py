@@ -25,11 +25,11 @@ def _get_db_url() -> tuple[str, bool]:
         url = turso.get("url", "")
         token = turso.get("auth_token", "")
         if url and token:
-            # sqlalchemy-libsql은 sqlite+libsql:// 프리픽스 필요
+            # sqlalchemy-libsql은 sqlite+libsql:// 프리픽스 + secure=true 필요
             if url.startswith("libsql://"):
                 url = "sqlite+libsql://" + url[len("libsql://"):]
             sep = "&" if "?" in url else "?"
-            return f"{url}{sep}authToken={token}", True
+            return f"{url}{sep}authToken={token}&secure=true", True
     except RuntimeError:
         raise
     except Exception:
