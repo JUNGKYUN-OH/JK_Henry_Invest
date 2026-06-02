@@ -338,6 +338,14 @@ def _is_auth_enabled() -> bool:
         return False
 
 
+def _has_google_credentials() -> bool:
+    """secrets.toml에 [auth.google] 자격증명이 있는지 확인."""
+    try:
+        return "google" in st.secrets["auth"]
+    except Exception:
+        return False
+
+
 def render_sidebar() -> None:
     """사이드바 내비게이션 + 테마 토글 + 사용자 정보(인증 활성화 시)."""
     theme = current_theme()
@@ -389,9 +397,12 @@ def render_sidebar() -> None:
         else:
             # 미인증: 로그인 안내만 표시
             st.caption("로그인 후 이용하실 수 있습니다.")
-            if st.button("🔑  Google로 로그인", use_container_width=True,
-                         type="primary", key="__sidebar_login__"):
-                st.login("google")
+            if _has_google_credentials():
+                if st.button("🔑  Google로 로그인", use_container_width=True,
+                             type="primary", key="__sidebar_login__"):
+                    st.login("google")
+            else:
+                st.caption("⚙️ secrets.toml에 [auth.google] 설정이 필요합니다.")
 
 
 def _render_login_page() -> None:
@@ -416,10 +427,15 @@ def _render_login_page() -> None:
             unsafe_allow_html=True,
         )
         gap(20)
-        if st.button("🔑  Google 계정으로 로그인",
-                     use_container_width=True, type="primary",
-                     key="__main_login__"):
-            st.login("google")
+        if _has_google_credentials():
+            if st.button("🔑  Google 계정으로 로그인",
+                         use_container_width=True, type="primary",
+                         key="__main_login__"):
+                st.login("google")
+        else:
+            st.info("⚙️ Google 로그인 설정이 완료되지 않았습니다.\n\n"
+                    "secrets.toml에 [auth.google] 섹션을 추가해 주세요.\n\n"
+                    "설정 방법은 .streamlit/secrets.toml.example 파일을 참고하세요.")
 
 
 def require_auth() -> None:
