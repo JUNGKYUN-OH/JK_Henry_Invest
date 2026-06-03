@@ -11,3 +11,5 @@ headless = true
 
 [browser]
 gatherUsageStats = false
+serverAddress = "jkhenryinvest.streamlit.app"
+serverPort = 443
