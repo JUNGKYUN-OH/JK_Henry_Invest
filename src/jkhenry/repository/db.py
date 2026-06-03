@@ -13,41 +13,46 @@ _PROJECT_ROOT = Path(__file__).parents[3]
 DB_PATH = _PROJECT_ROOT / "data" / "jkhenry.db"
 
 
-def _get_db_url() -> tuple[str, bool]:
-    """
-    (DB URL, is_remote) 반환.
-    Streamlit secrets에 [turso] 설정이 있으면 libSQL(Turso) URL,
-    없으면 로컬 SQLite URL. pytest 등 비-Streamlit 환경에서도 안전하게 동작.
-    """
+def _get_turso_config() -> tuple[str, str] | None:
+    """Streamlit secrets에서 (url, auth_token) 반환. 없으면 None."""
     try:
         import streamlit as st
         turso = st.secrets.get("turso", {})
         url = turso.get("url", "")
         token = turso.get("auth_token", "")
         if url and token:
-            # sqlalchemy-libsql은 sqlite+libsql:// 프리픽스 + secure=true 필요
-            if url.startswith("libsql://"):
-                url = "sqlite+libsql://" + url[len("libsql://"):]
-            sep = "&" if "?" in url else "?"
-            return f"{url}{sep}authToken={token}&secure=true", True
+            # 이전 포맷 호환: sqlite+libsql:// → libsql://
+            if url.startswith("sqlite+libsql://"):
+                url = "libsql://" + url[len("sqlite+libsql://"):]
+            return url, token
     except RuntimeError:
         raise
     except Exception:
         pass
-    return f"sqlite:///{DB_PATH}", False
+    return None
+
+
+def _build_turso_engine(url: str, token: str) -> sa.Engine:
+    """libsql-experimental을 SQLAlchemy creator 패턴으로 연결."""
+    import libsql_experimental as libsql
+
+    def creator():
+        return libsql.connect(database=url, auth_token=token)
+
+    return create_engine("sqlite+pysqlite:///:memory:", creator=creator)
 
 
 def get_engine(db_path: Path | None = None) -> sa.Engine:
     if db_path is not None:
-        # 테스트 등 명시적 경로 지정 시 로컬 SQLite 사용
         db_path.parent.mkdir(parents=True, exist_ok=True)
         return create_engine(f"sqlite:///{db_path}", echo=False)
 
-    url, is_remote = _get_db_url()
-    if not is_remote:
-        # 로컬 SQLite: data/ 디렉터리 자동 생성
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    return create_engine(url, echo=False)
+    turso = _get_turso_config()
+    if turso:
+        return _build_turso_engine(*turso)
+
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    return create_engine(f"sqlite:///{DB_PATH}", echo=False)
 
 
 class DecimalText(sa.TypeDecorator):
