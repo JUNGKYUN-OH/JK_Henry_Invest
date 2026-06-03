@@ -36,8 +36,20 @@ def _build_turso_engine(url: str, token: str) -> sa.Engine:
     """libsql-experimental을 SQLAlchemy creator 패턴으로 연결."""
     import libsql_experimental as libsql
 
+    class _Conn:
+        # pysqlite dialect가 REGEXP 설정을 위해 create_function()을 호출하는데
+        # libsql 연결 객체에 해당 메서드가 없으므로 no-op으로 제공
+        def __init__(self, c):
+            self._c = c
+
+        def create_function(self, *a, **kw):
+            pass
+
+        def __getattr__(self, name):
+            return getattr(self._c, name)
+
     def creator():
-        return libsql.connect(database=url, auth_token=token)
+        return _Conn(libsql.connect(database=url, auth_token=token))
 
     return create_engine("sqlite+pysqlite:///:memory:", creator=creator)
 
