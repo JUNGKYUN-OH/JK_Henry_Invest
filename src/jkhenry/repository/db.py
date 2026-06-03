@@ -142,6 +142,16 @@ class VrPeriodModel(Base):
     created_at = Column(String, nullable=False)
 
 
+class UserSessionModel(Base):
+    __tablename__ = "user_session"
+
+    token = Column(String, primary_key=True)
+    email = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    created_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+
+
 def init_db(engine: sa.Engine | None = None) -> sa.Engine:
     """테이블이 없으면 생성한다. 앱 시작 시 1회 호출."""
     eng = engine or get_engine()

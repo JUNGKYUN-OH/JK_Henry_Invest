@@ -333,6 +333,8 @@ def inject_css() -> None:
 _GOOGLE_AUTH_BASE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL    = "https://oauth2.googleapis.com/token"
 _GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+_LS_KEY = "jk_session_v1"   # localStorage 키
+_QP_KEY = "_s"               # 세션 복원용 query param 키
 
 
 def _is_auth_enabled() -> bool:
@@ -367,14 +369,41 @@ def _get_google_auth_url() -> str | None:
         return None
 
 
+def _js_save_session(token: str) -> None:
+    """로그인 성공 후 localStorage에 세션 토큰 저장."""
+    st.html(f"<script>localStorage.setItem('{_LS_KEY}', '{token}');</script>")
+
+
+def _js_clear_session() -> None:
+    """로그아웃 시 localStorage 세션 토큰 삭제."""
+    st.html(f"<script>localStorage.removeItem('{_LS_KEY}');</script>")
+
+
+def _js_restore_session_if_exists() -> None:
+    """localStorage에 토큰이 있으면 ?_s=TOKEN으로 리디렉션 (세션 복원 트리거)."""
+    st.html(f"""<script>
+(function(){{
+  var t = localStorage.getItem('{_LS_KEY}');
+  if (t) {{
+    var p = new URLSearchParams(window.location.search);
+    if (!p.has('{_QP_KEY}')) {{
+      p.set('{_QP_KEY}', t);
+      window.location.replace(window.location.pathname + '?' + p.toString());
+    }}
+  }}
+}})();
+</script>""")
+
+
 def _handle_oauth_callback() -> None:
-    """query_params에 code가 있으면 토큰 교환 후 session_state에 저장하고 rerun."""
+    """query_params에 OAuth code가 있으면 토큰 교환 → DB 세션 생성 → rerun."""
     code = st.query_params.get("code")
     if not code:
         return
 
     try:
         import httpx
+        from jkhenry.repository.session_store import create_session
         google = st.secrets["auth"]["google"]
         token_resp = httpx.post(
             _GOOGLE_TOKEN_URL,
@@ -397,10 +426,11 @@ def _handle_oauth_callback() -> None:
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=10,
             ).json()
-            st.session_state["_auth_user"] = {
-                "email": userinfo.get("email", ""),
-                "name": userinfo.get("name", userinfo.get("email", "사용자")),
-            }
+            email = userinfo.get("email", "")
+            name  = userinfo.get("name", email)
+            session_token = create_session(email, name)
+            st.session_state["_auth_user"] = {"email": email, "name": name, "token": session_token}
+            st.session_state["_save_token"] = session_token  # 다음 렌더에서 localStorage 저장
     except Exception as e:
         st.error(f"인증 처리 오류: {e}")
 
@@ -446,7 +476,10 @@ def render_sidebar() -> None:
                 st.divider()
                 st.caption(f"👤 {user.get('name', user.get('email', '사용자'))}")
                 if st.button("로그아웃", use_container_width=True, key="__logout__"):
+                    from jkhenry.repository.session_store import delete_session
+                    delete_session(user.get("token", ""))
                     del st.session_state["_auth_user"]
+                    _js_clear_session()
                     st.rerun()
         else:
             st.caption("로그인 후 이용하실 수 있습니다.")
@@ -496,19 +529,44 @@ def require_auth() -> None:
     if not _is_auth_enabled():
         return  # 로컬 개발 바이패스
 
-    _handle_oauth_callback()  # code가 있으면 처리 후 rerun (이 줄 이하로 진행 안 됨)
+    # ① OAuth 인가코드 처리 (code → 세션 생성 → rerun)
+    _handle_oauth_callback()
 
+    # ② 이번 WebSocket 세션에 이미 인증된 경우
     user = st.session_state.get("_auth_user")
-    if not user:
-        _render_login_page()
-        st.stop()
+    if user:
+        # 로그인 직후: localStorage에 토큰 저장
+        token_to_save = st.session_state.pop("_save_token", None)
+        if token_to_save:
+            _js_save_session(token_to_save)
+        _check_whitelist(user)
         return
 
+    # ③ 브라우저 새로고침: localStorage → ?_s=TOKEN → DB 검증
+    session_token = st.query_params.get(_QP_KEY)
+    if session_token:
+        from jkhenry.repository.session_store import get_session
+        user = get_session(session_token)
+        if user:
+            st.session_state["_auth_user"] = user
+            st.query_params.pop(_QP_KEY, None)
+            st.rerun()
+            return
+        # 만료된 토큰 → localStorage 삭제 후 로그인 페이지
+        _js_clear_session()
+        st.query_params.pop(_QP_KEY, None)
+
+    # ④ 미인증: localStorage 확인 JS 삽입 후 로그인 페이지 표시
+    _js_restore_session_if_exists()
+    _render_login_page()
+    st.stop()
+
+
+def _check_whitelist(user: dict) -> None:
     try:
         allowed = list(st.secrets["allowed_users"]["emails"])
     except Exception:
         allowed = []
-
     if allowed and user["email"] not in allowed:
         st.markdown(
             f'<div style="text-align:center;padding:60px 24px;">'
@@ -521,7 +579,10 @@ def require_auth() -> None:
             unsafe_allow_html=True,
         )
         if st.button("로그아웃", type="primary", use_container_width=False):
+            from jkhenry.repository.session_store import delete_session
+            delete_session(user.get("token", ""))
             del st.session_state["_auth_user"]
+            _js_clear_session()
             st.rerun()
         st.stop()
 
