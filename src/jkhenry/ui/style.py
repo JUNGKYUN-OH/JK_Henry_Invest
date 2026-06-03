@@ -524,8 +524,8 @@ def require_auth() -> None:
         user = get_session(session_token)
         if user:
             st.session_state["_auth_user"] = user
-            _check_whitelist(user)
-            return
+            # rerun으로 sidebar까지 인증 상태로 다시 렌더링
+            st.rerun()
         # 만료/무효 토큰 → 제거 후 로그인 페이지
         st.query_params.pop(_QP_KEY, None)
 
