@@ -330,31 +330,89 @@ def inject_css() -> None:
     )
 
 
+_GOOGLE_AUTH_BASE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+_GOOGLE_TOKEN_URL    = "https://oauth2.googleapis.com/token"
+_GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+
+
 def _is_auth_enabled() -> bool:
-    """secrets.toml에 [auth] 섹션이 있으면 인증 활성화 상태."""
     try:
-        return "auth" in st.secrets
+        return bool(st.secrets.get("auth", {}).get("google"))
     except Exception:
         return False
 
 
-def _has_google_credentials() -> bool:
-    """secrets.toml에 [auth.google] 자격증명이 있는지 확인."""
+def _get_redirect_uri() -> str:
     try:
-        return "google" in st.secrets["auth"]
+        return st.secrets["auth"]["redirect_uri"]
     except Exception:
-        return False
+        return "http://localhost:8501/"
+
+
+def _get_google_auth_url() -> str | None:
+    if not _is_auth_enabled():
+        return None
+    try:
+        import urllib.parse
+        client_id = st.secrets["auth"]["google"]["client_id"]
+        params = {
+            "client_id": client_id,
+            "redirect_uri": _get_redirect_uri(),
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "online",
+        }
+        return f"{_GOOGLE_AUTH_BASE_URL}?{urllib.parse.urlencode(params)}"
+    except Exception:
+        return None
+
+
+def _handle_oauth_callback() -> None:
+    """query_params에 code가 있으면 토큰 교환 후 session_state에 저장하고 rerun."""
+    code = st.query_params.get("code")
+    if not code:
+        return
+
+    try:
+        import httpx
+        google = st.secrets["auth"]["google"]
+        token_resp = httpx.post(
+            _GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": google["client_id"],
+                "client_secret": google["client_secret"],
+                "redirect_uri": _get_redirect_uri(),
+                "grant_type": "authorization_code",
+            },
+            timeout=10,
+        )
+        token = token_resp.json()
+        access_token = token.get("access_token")
+        if not access_token:
+            st.error(f"로그인 실패: {token.get('error_description', token.get('error', '알 수 없는 오류'))}")
+        else:
+            userinfo = httpx.get(
+                _GOOGLE_USERINFO_URL,
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10,
+            ).json()
+            st.session_state["_auth_user"] = {
+                "email": userinfo.get("email", ""),
+                "name": userinfo.get("name", userinfo.get("email", "사용자")),
+            }
+    except Exception as e:
+        st.error(f"인증 처리 오류: {e}")
+
+    st.query_params.clear()
+    st.rerun()
 
 
 def render_sidebar() -> None:
-    """사이드바 내비게이션 + 테마 토글 + 사용자 정보(인증 활성화 시)."""
     theme = current_theme()
     auth_on = _is_auth_enabled()
-    # 인증 비활성화(로컬 개발) 또는 로그인 상태 → 전체 네비게이션 표시
-    try:
-        logged_in = (not auth_on) or st.user.is_logged_in
-    except Exception:
-        logged_in = not auth_on
+    user = st.session_state.get("_auth_user")
+    logged_in = (not auth_on) or (user is not None)
 
     with st.sidebar:
         brand_color = "#4F8EF7" if theme == "dark" else "#2563EB"
@@ -384,29 +442,23 @@ def render_sidebar() -> None:
                 st.rerun()
             st.caption(f"현재: {'🌙 다크' if theme == 'dark' else '☀️ 라이트'}")
 
-            # 로그인 사용자 정보 + 로그아웃 버튼
-            if auth_on:
+            if auth_on and user:
                 st.divider()
-                try:
-                    name_display = st.user.name or st.user.email or "사용자"
-                except Exception:
-                    name_display = "사용자"
-                st.caption(f"👤 {name_display}")
+                st.caption(f"👤 {user.get('name', user.get('email', '사용자'))}")
                 if st.button("로그아웃", use_container_width=True, key="__logout__"):
-                    st.logout()
+                    del st.session_state["_auth_user"]
+                    st.rerun()
         else:
-            # 미인증: 로그인 안내만 표시
             st.caption("로그인 후 이용하실 수 있습니다.")
-            if _has_google_credentials():
-                if st.button("🔑  Google로 로그인", use_container_width=True,
-                             type="primary", key="__sidebar_login__"):
-                    st.login("google")
+            auth_url = _get_google_auth_url()
+            if auth_url:
+                st.link_button("🔑  Google로 로그인", auth_url,
+                               use_container_width=True, type="primary")
             else:
                 st.caption("⚙️ secrets.toml에 [auth.google] 설정이 필요합니다.")
 
 
 def _render_login_page() -> None:
-    """미인증 사용자에게 보여지는 로그인 화면."""
     _, center, _ = st.columns([1, 2, 1])
     with center:
         st.markdown(
@@ -427,59 +479,50 @@ def _render_login_page() -> None:
             unsafe_allow_html=True,
         )
         gap(20)
-        if _has_google_credentials():
-            if st.button("🔑  Google 계정으로 로그인",
-                         use_container_width=True, type="primary",
-                         key="__main_login__"):
-                st.login("google")
+        auth_url = _get_google_auth_url()
+        if auth_url:
+            st.link_button(
+                "🔑  Google 계정으로 로그인",
+                auth_url,
+                use_container_width=True,
+                type="primary",
+            )
         else:
             st.info("⚙️ Google 로그인 설정이 완료되지 않았습니다.\n\n"
-                    "secrets.toml에 [auth.google] 섹션을 추가해 주세요.\n\n"
-                    "설정 방법은 .streamlit/secrets.toml.example 파일을 참고하세요.")
+                    "secrets.toml에 [auth.google] 섹션을 추가해 주세요.")
 
 
 def require_auth() -> None:
-    """Google OIDC 인증 게이트. inject_css() + render_sidebar() 직후에 호출.
-
-    - secrets.toml에 [auth] 섹션 없음 → 로컬 개발로 간주, 바이패스
-    - 미인증 → 로그인 화면 표시 후 st.stop()
-    - 화이트리스트에 없는 이메일 → 접근 거부 후 st.stop()
-    """
     if not _is_auth_enabled():
         return  # 로컬 개발 바이패스
 
-    try:
-        user = st.user
-        is_logged_in = user.is_logged_in
-    except Exception:
+    _handle_oauth_callback()  # code가 있으면 처리 후 rerun (이 줄 이하로 진행 안 됨)
+
+    user = st.session_state.get("_auth_user")
+    if not user:
         _render_login_page()
         st.stop()
         return
 
-    if not is_logged_in:
-        _render_login_page()
-        st.stop()
-        return
-
-    # 이메일 화이트리스트 확인
     try:
         allowed = list(st.secrets["allowed_users"]["emails"])
     except Exception:
         allowed = []
 
-    if allowed and user.email not in allowed:
+    if allowed and user["email"] not in allowed:
         st.markdown(
             f'<div style="text-align:center;padding:60px 24px;">'
             f'<div style="font-size:2.2rem;margin-bottom:16px;">⛔</div>'
             f'<div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:8px;">'
             f'접근 권한이 없습니다</div>'
             f'<div style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;">'
-            f'로그인 계정: {user.email}</div>'
+            f'로그인 계정: {user["email"]}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
         if st.button("로그아웃", type="primary", use_container_width=False):
-            st.logout()
+            del st.session_state["_auth_user"]
+            st.rerun()
         st.stop()
 
 
