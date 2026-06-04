@@ -90,6 +90,45 @@ auth_token = "<Turso 발급 JWT 토큰>"
 
 ---
 
+## 사용자 추가 방법
+
+새로운 Google 계정에 접근 권한을 부여하려면 **두 곳** 을 모두 수정해야 합니다.
+
+### Step 1 — Google Cloud에 테스트 사용자 등록
+
+> 앱 소유자 계정은 자동 허용되므로 등록 불필요. 다른 사람 계정만 추가.
+
+1. [console.cloud.google.com](https://console.cloud.google.com) 접속
+2. 왼쪽 상단 햄버거 메뉴 → **API 및 서비스** 선택
+3. **OAuth 동의 화면** 선택
+4. 왼쪽 메뉴 **대상** 클릭
+5. 스크롤 내려 **테스트 사용자** 섹션 → **사용자 추가**
+6. 추가할 Google 이메일 입력 → 저장
+
+### Step 2 — Streamlit Cloud Secrets에 이메일 추가
+
+1. [share.streamlit.io](https://share.streamlit.io) → 앱 → **Settings → Secrets**
+2. `[allowed_users]` 섹션에 이메일 추가
+
+```toml
+[allowed_users]
+emails = [
+  "jungkyun98@googlemail.com",
+  "추가할계정@gmail.com"
+]
+```
+
+3. **Save** 클릭 → 즉시 적용 (재배포 불필요)
+
+### 두 설정의 역할
+
+| 설정 | 역할 | 누락 시 |
+|------|------|---------|
+| Google Cloud 테스트 사용자 | Google이 해당 계정의 로그인 자체를 허용 | Google 화면에서 "액세스 차단됨" 오류 |
+| Streamlit Secrets `allowed_users` | 앱이 로그인 후 접근 권한 검증 | 로그인은 되지만 앱에서 "접근 권한 없음" 표시 |
+
+---
+
 ## 로컬 개발
 
 ```bash
