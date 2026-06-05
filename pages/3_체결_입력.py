@@ -51,6 +51,19 @@ if selected.strategy == "IB":
         c2.metric("평단가", fmt_usd(snap["avg_price"]))
         c3.metric("보유 수량", f"{float(snap['shares_held']):.2f}주")
 
+# ── 오늘 가이드 기반 기본값 산출 ──────────────────────────────────────────────
+def_price = 0.01
+def_shares = 0.01
+
+if selected.strategy == "IB":
+    try:
+        _guide = svc.generate_ib_daily_guide(selected.id)
+        if _guide.buy_orders:
+            def_price  = max(float(_guide.buy_orders[0].price),  0.01)
+            def_shares = max(float(_guide.buy_orders[0].shares), 0.01)
+    except Exception:
+        pass
+
 st.divider()
 
 # ── 체결 입력 폼 ───────────────────────────────────────────────────────────────
@@ -64,8 +77,8 @@ with st.container(border=True):
             side_code = "BUY" if side.startswith("BUY") else "SELL"
         with col2:
             order_type = st.selectbox("주문 유형", ["LOC", "LIMIT", "MARKET"])
-            shares = st.number_input("체결 수량 (주)", min_value=0.01, step=0.01, format="%.2f")
-            price = st.number_input("체결 단가 (USD)", min_value=0.01, step=0.01, format="%.4f")
+            shares = st.number_input("체결 수량 (주)", min_value=0.01, value=def_shares, step=0.01, format="%.2f")
+            price = st.number_input("체결 단가 (USD)", min_value=0.01, value=def_price, step=0.01, format="%.4f")
             note = st.text_input("메모 (선택)")
 
         amount = Decimal(str(shares)) * Decimal(str(price))
