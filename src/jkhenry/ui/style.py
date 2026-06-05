@@ -465,10 +465,13 @@ def render_sidebar() -> None:
                     f'<a href="{auth_url}" target="_self" style="'
                     f'display:block;text-align:center;padding:8px 16px;'
                     f'background:linear-gradient(135deg,var(--p1),var(--p2));'
-                    f'color:#fff !important;border-radius:10px;font-weight:600;'
-                    f'font-size:0.85rem;text-decoration:none;'
+                    f'border-radius:10px;font-weight:600;font-size:0.85rem;'
+                    f'text-decoration:none;'
                     f'box-shadow:0 2px 14px rgba(79,142,247,0.28);'
-                    f'transition:opacity 0.15s;">🔑&nbsp; Google로 로그인</a>',
+                    f'transition:opacity 0.15s;">'
+                    f'<span style="color:#ffffff !important;'
+                    f'-webkit-text-fill-color:#ffffff !important;">'
+                    f'🔑&nbsp; Google로 로그인</span></a>',
                     unsafe_allow_html=True,
                 )
             else:
@@ -502,10 +505,13 @@ def _render_login_page() -> None:
                 f'<a href="{auth_url}" target="_self" style="'
                 f'display:block;text-align:center;padding:10px 24px;'
                 f'background:linear-gradient(135deg,var(--p1),var(--p2));'
-                f'color:#fff !important;border-radius:10px;font-weight:600;'
-                f'font-size:0.9rem;text-decoration:none;'
+                f'border-radius:10px;font-weight:600;font-size:0.9rem;'
+                f'text-decoration:none;'
                 f'box-shadow:0 2px 14px rgba(79,142,247,0.28);'
-                f'transition:opacity 0.15s;">🔑&nbsp; Google 계정으로 로그인</a>',
+                f'transition:opacity 0.15s;">'
+                f'<span style="color:#ffffff !important;'
+                f'-webkit-text-fill-color:#ffffff !important;">'
+                f'🔑&nbsp; Google 계정으로 로그인</span></a>',
                 unsafe_allow_html=True,
             )
         else:
