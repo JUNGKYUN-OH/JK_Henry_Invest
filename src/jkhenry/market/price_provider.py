@@ -12,6 +12,7 @@ import yfinance as yf
 
 _cache: dict[str, dict] = {}  # {ticker: {"prev_close": Decimal, "current": Decimal}}
 _friday_cache: dict[str, dict] = {}  # {ticker: {"date": date, "close": Decimal}}
+_krw_cache: dict = {}  # {"rate": Decimal}
 
 
 def _fetch(ticker: str) -> dict:
@@ -95,9 +96,26 @@ def get_current_price(ticker: str) -> Optional[Decimal]:
     return data["current"] if data else None
 
 
+def get_usd_krw_rate() -> Optional[Decimal]:
+    """USD/KRW 실시간 환율. yfinance 'KRW=X' 티커 사용. 세션 캐시."""
+    if _krw_cache:
+        return _krw_cache.get("rate")
+    try:
+        t = yf.Ticker("KRW=X")
+        hist = t.history(period="5d")
+        if hist.empty:
+            return None
+        rate = Decimal(str(round(float(hist["Close"].iloc[-1]), 2)))
+        _krw_cache["rate"] = rate
+        return rate
+    except Exception:
+        return None
+
+
 def clear_cache() -> None:
     _cache.clear()
     _friday_cache.clear()
+    _krw_cache.clear()
 
 
 def ticker_exists(ticker: str) -> tuple[bool, Optional[dict]]:

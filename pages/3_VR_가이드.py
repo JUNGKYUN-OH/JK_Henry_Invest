@@ -9,10 +9,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import streamlit as st
 
-from jkhenry.market.price_provider import get_friday_close
+from jkhenry.market.price_provider import get_friday_close, get_usd_krw_rate
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
-from jkhenry.ui.components import fmt_usd, order_table, show_price_alert
+from jkhenry.ui.components import fmt_krw, fmt_usd, order_table, show_price_alert
 from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, require_auth, section_label, status_banner
 
 st.set_page_config(page_title="VR 가이드", page_icon="⚖️", layout="centered",
@@ -89,6 +89,17 @@ with st.container(border=True):
     e_vs_v = (guide.e_value - guide.v_target) / guide.v_target * 100 if guide.v_target > 0 else Decimal("0")
     sign = "+" if float(e_vs_v) >= 0 else ""
     m4.metric("V 대비", f"{sign}{float(e_vs_v):.1f}%")
+
+    gap(4)
+    rate     = get_usd_krw_rate()
+    invested = snap["total_invested"]
+    m5, m6   = st.columns(2)
+    m5.metric("매입금액", fmt_usd(invested),
+              delta=fmt_krw(invested, rate) if rate else None,
+              delta_color="off")
+    m6.metric("평가금액 (원화)", fmt_usd(guide.e_value),
+              delta=fmt_krw(guide.e_value, rate) if rate else None,
+              delta_color="off")
 
 # ── 밴드 상태 ─────────────────────────────────────────────────────────────────
 with st.container(border=True):

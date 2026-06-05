@@ -182,6 +182,7 @@ class GuideService:
                     if latest_period else Decimal(str(raw_params.get("v_initial", "0"))))
         cash_balance = Decimal(str(raw_params.get("cash_balance", "0")))
         shares_held = compute_shares_held(trades)
+        total_invested = compute_total_invested(trades)
 
         return {
             "portfolio": portfolio,
@@ -190,6 +191,7 @@ class GuideService:
             "v_target": v_target,
             "cash_balance": cash_balance,
             "shares_held": shares_held,
+            "total_invested": total_invested,
         }
 
     def generate_vr_guide(self, portfolio_id: int,

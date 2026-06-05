@@ -8,9 +8,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import streamlit as st
 
+from jkhenry.market.price_provider import get_usd_krw_rate
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
-from jkhenry.ui.components import fmt_usd, order_table, show_price_alert, strategy_badge
+from jkhenry.ui.components import fmt_krw, fmt_usd, order_table, show_price_alert, strategy_badge
 from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, require_auth, section_label, status_banner
 
 st.set_page_config(page_title="IB 가이드", page_icon="📈", layout="centered",
@@ -94,6 +95,18 @@ with st.container(border=True):
     gap(4)
     progress = min(float(eff_rnd) / max_rnd, 1.0) if max_rnd > 0 else 0.0
     st.progress(progress, text=f"잔여 예산 {fmt_usd(guide.remaining_budget)}")
+
+    gap(4)
+    rate       = get_usd_krw_rate()
+    invested   = snap["total_invested"]
+    eval_amt   = shares * current_price if current_price > 0 else None
+    m5, m6 = st.columns(2)
+    m5.metric("매입금액", fmt_usd(invested),
+              delta=fmt_krw(invested, rate) if rate else None,
+              delta_color="off")
+    m6.metric("평가금액", fmt_usd(eval_amt) if eval_amt else "—",
+              delta=fmt_krw(eval_amt, rate) if (eval_amt and rate) else None,
+              delta_color="off")
 
 show_price_alert(guide.messages)
 

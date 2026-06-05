@@ -20,6 +20,20 @@ def fmt_usd(value: Decimal | float | None, decimals: int = 2) -> str:
     return f"${float(value):,.{decimals}f}"
 
 
+def fmt_krw(usd_value: Decimal | float | None, rate: Decimal | float | None) -> str:
+    """USD 금액을 원화 만원 단위로 변환. 예: ₩621만, ₩1.2억"""
+    if usd_value is None or rate is None:
+        return "—"
+    krw = float(usd_value) * float(rate)
+    man = krw / 10_000
+    if man >= 10_000:
+        return f"₩{man / 10_000:.1f}억"
+    elif man >= 1:
+        return f"₩{man:,.0f}만"
+    else:
+        return f"₩{krw:,.0f}"
+
+
 def fmt_pct(value: Decimal | float | None, decimals: int = 2) -> str:
     if value is None:
         return "—"

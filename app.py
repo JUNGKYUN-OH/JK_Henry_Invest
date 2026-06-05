@@ -9,10 +9,10 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import streamlit as st
 
-from jkhenry.market.price_provider import get_friday_close, get_price_data
+from jkhenry.market.price_provider import get_friday_close, get_price_data, get_usd_krw_rate
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
-from jkhenry.ui.components import fmt_pct, fmt_usd
+from jkhenry.ui.components import fmt_krw, fmt_pct, fmt_usd
 from jkhenry.ui.style import (
     C, card_header, gap, inject_css, no_order_card,
     order_card, render_sidebar, require_auth, section_label, status_banner,
@@ -110,6 +110,7 @@ else:
 def _get_card_data(p):
     price_data = get_price_data(p.ticker)
     current    = Decimal(str(price_data["current"])) if price_data else None
+    rate       = get_usd_krw_rate()
 
     if p.strategy == "IB":
         snap    = svc.get_ib_snapshot(p.id)
@@ -132,11 +133,19 @@ def _get_card_data(p):
         else:
             status_icon, status_color = "🟢", "var(--buy)"
 
+        invested  = snap["total_invested"]
+        eval_amt  = snap["shares_held"] * current if current else None
+
+        def _combined(usd):
+            return f"{fmt_usd(usd, 0)} · {fmt_krw(usd, rate)}" if usd else "—"
+
         metrics = [
             ("유효 회차", f"{float(eff_rnd):.1f} / {max_rnd}"),
             ("평단가",    fmt_usd(avg) if avg > 0 else "—"),
             ("현재가",    fmt_usd(current) if current else "—"),
             ("손익",      pnl_str),
+            ("매입금액",  _combined(invested)),
+            ("평가금액",  _combined(eval_amt)),
         ]
         return dict(metrics=metrics, status_icon=status_icon,
                     status_color=status_color, pnl_color=pnl_color,
@@ -156,11 +165,13 @@ def _get_card_data(p):
 
         fri_label = (f"{friday_data['date'].month}/{friday_data['date'].day} 금"
                      if friday_data else "금 종가")
+        invested = snap["total_invested"]
         metrics = [
             ("목표값 V",  fmt_usd(guide.v_target)),
             ("평가금액 E", fmt_usd(guide.e_value)),
             (fri_label,   fmt_usd(friday_price) if friday_price else "—"),
             ("현금 C",    fmt_usd(guide.cash_balance)),
+            ("매입금액",  f"{fmt_usd(invested, 0)} · {fmt_krw(invested, rate)}"),
         ]
         return dict(metrics=metrics, status_icon=action_icon,
                     status_color=action_color, pnl_color=action_color,
