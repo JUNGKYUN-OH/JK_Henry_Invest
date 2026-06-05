@@ -461,8 +461,16 @@ def render_sidebar() -> None:
             st.caption("로그인 후 이용하실 수 있습니다.")
             auth_url = _get_google_auth_url()
             if auth_url:
-                st.link_button("🔑  Google로 로그인", auth_url,
-                               use_container_width=True, type="primary")
+                st.markdown(
+                    f'<a href="{auth_url}" target="_self" style="'
+                    f'display:block;text-align:center;padding:8px 16px;'
+                    f'background:linear-gradient(135deg,var(--p1),var(--p2));'
+                    f'color:#fff !important;border-radius:10px;font-weight:600;'
+                    f'font-size:0.85rem;text-decoration:none;'
+                    f'box-shadow:0 2px 14px rgba(79,142,247,0.28);'
+                    f'transition:opacity 0.15s;">🔑&nbsp; Google로 로그인</a>',
+                    unsafe_allow_html=True,
+                )
             else:
                 st.caption("⚙️ secrets.toml에 [auth.google] 설정이 필요합니다.")
 
@@ -490,11 +498,15 @@ def _render_login_page() -> None:
         gap(20)
         auth_url = _get_google_auth_url()
         if auth_url:
-            st.link_button(
-                "🔑  Google 계정으로 로그인",
-                auth_url,
-                use_container_width=True,
-                type="primary",
+            st.markdown(
+                f'<a href="{auth_url}" target="_self" style="'
+                f'display:block;text-align:center;padding:10px 24px;'
+                f'background:linear-gradient(135deg,var(--p1),var(--p2));'
+                f'color:#fff !important;border-radius:10px;font-weight:600;'
+                f'font-size:0.9rem;text-decoration:none;'
+                f'box-shadow:0 2px 14px rgba(79,142,247,0.28);'
+                f'transition:opacity 0.15s;">🔑&nbsp; Google 계정으로 로그인</a>',
+                unsafe_allow_html=True,
             )
         else:
             st.info("⚙️ Google 로그인 설정이 완료되지 않았습니다.\n\n"
