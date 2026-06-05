@@ -7,12 +7,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import pandas as pd
 import streamlit as st
 
 from jkhenry.repository.db import init_db
 from jkhenry.services.guide_service import GuideService
 from jkhenry.ui.components import fmt_usd, strategy_badge
-from jkhenry.ui.style import gap, inject_css, page_header, render_sidebar, require_auth, section_label
+from jkhenry.ui.style import gap, inject_css, order_card, page_header, render_sidebar, require_auth, section_label
 
 st.set_page_config(page_title="체결 입력", page_icon="✏️", layout="centered",
                    initial_sidebar_state="expanded")
@@ -88,6 +89,21 @@ if submitted:
             )
             st.success("✅ 체결 기록이 저장되었습니다.")
 
+            # ── 1. 저장된 체결 요약 카드 ───────────────────────────────────────
+            with st.container(border=True):
+                section_label("저장된 체결")
+                order_card(
+                    label=f"{selected.ticker} · {trade_date}",
+                    price=price,
+                    shares=shares,
+                    amount=amount,
+                    order_type=order_type,
+                    side=side_code,
+                )
+                if note:
+                    st.caption(f"💬 {note}")
+
+            # ── 2. IB 갱신 상태 ────────────────────────────────────────────────
             if selected.strategy == "IB":
                 snap = svc.get_ib_snapshot(selected.id)
                 with st.container(border=True):
@@ -96,5 +112,25 @@ if submitted:
                     c1.metric("갱신 유효 회차", f"{float(snap['effective_round']):.1f}")
                     c2.metric("갱신 평단가", fmt_usd(snap["avg_price"]))
                     c3.metric("갱신 보유수량", f"{float(snap['shares_held']):.2f}주")
+
+            # ── 3. 최근 체결 내역 ──────────────────────────────────────────────
+            recent = svc.get_journal(portfolio_id=selected.id)[:5]
+            if recent:
+                with st.container(border=True):
+                    section_label(f"최근 체결 내역 — {selected.ticker}")
+                    rows = [
+                        {
+                            "날짜": str(t.trade_date),
+                            "구분": "📥 매수" if t.side == "BUY" else "📤 매도",
+                            "유형": t.order_type,
+                            "수량(주)": f"{float(t.shares):.2f}",
+                            "단가(USD)": f"${float(t.price):.4f}",
+                            "금액(USD)": f"${float(t.amount):.2f}",
+                            "메모": t.note or "",
+                        }
+                        for t in recent
+                    ]
+                    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
         except Exception as e:
             st.error(f"저장 실패: {e}")
