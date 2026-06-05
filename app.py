@@ -143,9 +143,9 @@ def _get_card_data(p):
             ("유효 회차", f"{float(eff_rnd):.1f} / {max_rnd}"),
             ("평단가",    fmt_usd(avg) if avg > 0 else "—"),
             ("현재가",    fmt_usd(current) if current else "—"),
-            ("손익",      pnl_str),
             ("매입금액",  _combined(invested)),
             ("평가금액",  _combined(eval_amt)),
+            ("손익",      pnl_str),
         ]
         return dict(metrics=metrics, status_icon=status_icon,
                     status_color=status_color, pnl_color=pnl_color,
