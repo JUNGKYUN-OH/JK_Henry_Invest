@@ -367,6 +367,23 @@ if sel_p.strategy == "IB":
             no_order_card("보유 수량 없음")
 
     gap(6)
+    _last = st.session_state.pop("_dash_last_trade", None)
+    if _last:
+        st.success("✅ 체결 기록이 저장되었습니다.")
+        with st.container(border=True):
+            section_label("저장된 체결")
+            order_card(
+                label=f"{_last['ticker']} · {_last['date']}",
+                price=_last["price"],
+                shares=_last["shares"],
+                amount=_last["amount"],
+                order_type=_last["order_type"],
+                side=_last["side"],
+            )
+            if _last.get("note"):
+                st.caption(f"💬 {_last['note']}")
+        gap(4)
+
     with st.expander("✏️ 체결 기록 입력"):
         with st.form(f"tf_{sel_p.id}"):
             r1c1, r1c2, r1c3 = st.columns(3)
@@ -396,7 +413,16 @@ if sel_p.strategy == "IB":
                         sel_p.id, trade_date=td, side=side_code, order_type=ot,
                         shares=Decimal(str(t_sh)), price=Decimal(str(t_pr)), note=t_nt,
                     )
-                    st.success("✅ 저장 완료")
+                    st.session_state["_dash_last_trade"] = {
+                        "ticker": sel_p.ticker,
+                        "date": str(td),
+                        "side": side_code,
+                        "order_type": ot,
+                        "shares": t_sh,
+                        "price": t_pr,
+                        "amount": float(amt),
+                        "note": t_nt,
+                    }
                     st.rerun()
                 except Exception as e:
                     st.error(f"저장 실패: {e}")
