@@ -342,7 +342,7 @@ hr { border-color: var(--border) !important; margin: 0.75rem 0 !important; }
 # ── 공개 API ──────────────────────────────────────────────────────────────────
 
 def current_theme() -> str:
-    return st.session_state.get("theme", "light")
+    return st.session_state.get("theme", "dark")
 
 
 def inject_css() -> None:
