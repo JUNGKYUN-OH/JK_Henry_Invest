@@ -188,6 +188,31 @@ _BASE_CSS = """
 [data-testid="stSidebarNav"] { display: none !important; }
 footer { visibility: hidden !important; }
 
+/* Google 로그인 링크 버튼 — 모든 링크 상태에서 흰색 텍스트 강제 */
+a.google-login-btn,
+a.google-login-btn:link,
+a.google-login-btn:visited,
+a.google-login-btn:hover,
+a.google-login-btn:active,
+a.google-login-btn * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-decoration: none !important;
+}
+a.google-login-btn {
+    display: block;
+    text-align: center;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, var(--p1), var(--p2));
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 14px rgba(79,142,247,0.28);
+    transition: opacity 0.15s;
+    margin: 4px 0;
+}
+a.google-login-btn:hover { opacity: 0.88; }
+
 /* 헤더: 앱 배경색과 동일하게 설정 → 흰 공간 제거
    (transparent는 Streamlit 내부 CSS에 덮여 효과 없음) */
 [data-testid="stHeader"] {
@@ -462,16 +487,8 @@ def render_sidebar() -> None:
             auth_url = _get_google_auth_url()
             if auth_url:
                 st.markdown(
-                    f'<a href="{auth_url}" target="_self" style="'
-                    f'display:block;text-align:center;padding:8px 16px;'
-                    f'background:linear-gradient(135deg,var(--p1),var(--p2));'
-                    f'border-radius:10px;font-weight:600;font-size:0.85rem;'
-                    f'text-decoration:none;'
-                    f'box-shadow:0 2px 14px rgba(79,142,247,0.28);'
-                    f'transition:opacity 0.15s;">'
-                    f'<span style="color:#ffffff !important;'
-                    f'-webkit-text-fill-color:#ffffff !important;">'
-                    f'🔑&nbsp; Google로 로그인</span></a>',
+                    f'<a href="{auth_url}" target="_self" class="google-login-btn">'
+                    f'🔑&nbsp; Google로 로그인</a>',
                     unsafe_allow_html=True,
                 )
             else:
@@ -502,16 +519,9 @@ def _render_login_page() -> None:
         auth_url = _get_google_auth_url()
         if auth_url:
             st.markdown(
-                f'<a href="{auth_url}" target="_self" style="'
-                f'display:block;text-align:center;padding:10px 24px;'
-                f'background:linear-gradient(135deg,var(--p1),var(--p2));'
-                f'border-radius:10px;font-weight:600;font-size:0.9rem;'
-                f'text-decoration:none;'
-                f'box-shadow:0 2px 14px rgba(79,142,247,0.28);'
-                f'transition:opacity 0.15s;">'
-                f'<span style="color:#ffffff !important;'
-                f'-webkit-text-fill-color:#ffffff !important;">'
-                f'🔑&nbsp; Google 계정으로 로그인</span></a>',
+                f'<a href="{auth_url}" target="_self" class="google-login-btn" '
+                f'style="padding:10px 24px;font-size:0.9rem;">'
+                f'🔑&nbsp; Google 계정으로 로그인</a>',
                 unsafe_allow_html=True,
             )
         else:
