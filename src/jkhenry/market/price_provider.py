@@ -20,6 +20,10 @@ def _fetch(ticker: str) -> dict:
     hist = t.history(period="5d")
     if hist.empty:
         raise ValueError(f"{ticker}: yfinance 데이터 없음")
+    # yfinance가 당일 미완성 봉에 NaN을 반환하는 경우 제거
+    hist = hist.dropna(subset=["Close"])
+    if len(hist) < 2:
+        raise ValueError(f"{ticker}: 유효한 종가 데이터 부족 (NaN 제거 후 {len(hist)}행)")
     prev_close = Decimal(str(round(float(hist["Close"].iloc[-2]), 4)))
     current = Decimal(str(round(float(hist["Close"].iloc[-1]), 4)))
     return {"prev_close": prev_close, "current": current}

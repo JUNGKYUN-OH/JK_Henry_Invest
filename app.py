@@ -109,7 +109,9 @@ else:
 # ── 컴팩트 요약 카드 데이터 수집 ───────────────────────────────────────────────
 def _get_card_data(p):
     price_data = get_price_data(p.ticker)
-    current    = Decimal(str(price_data["current"])) if price_data else None
+    current = price_data["current"] if price_data else None
+    if current is not None and current.is_nan():
+        current = None
     rate       = get_usd_krw_rate()
 
     if p.strategy == "IB":
