@@ -151,14 +151,14 @@ def _get_card_data(p):
         ]
         return dict(metrics=metrics, status_icon=status_icon,
                     status_color=status_color, pnl_color=pnl_color,
-                    price_data=price_data)
+                    price_data=price_data, snap=snap)
 
     else:  # VR
         friday_data  = get_friday_close(p.ticker)
         friday_price = Decimal(str(friday_data["close"])) if friday_data else current
 
         snap  = svc.get_vr_snapshot(p.id)
-        guide = svc.generate_vr_guide(p.id, manual_current=friday_price)
+        guide = svc.generate_vr_guide(p.id, manual_current=friday_price, snap=snap)
 
         action_icon = {"HOLD": "✅", "BUY": "⬇️", "SELL": "⬆️"}.get(guide.action, "—")
         action_color = {
@@ -177,7 +177,7 @@ def _get_card_data(p):
         ]
         return dict(metrics=metrics, status_icon=action_icon,
                     status_color=action_color, pnl_color=action_color,
-                    price_data=price_data)
+                    price_data=price_data, snap=snap)
 
 
 # ── Bento 카드 렌더 함수 ───────────────────────────────────────────────────────
@@ -259,15 +259,16 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+card_data_map: dict = {}
 if not display_portfolios:
     st.info("해당 전략 포트폴리오가 없습니다.")
 else:
+    card_data_map = {p.id: _get_card_data(p) for p in display_portfolios}
     n = len(display_portfolios)
     cols = st.columns(min(n, 3))
     for idx, p in enumerate(display_portfolios):
         with cols[idx % 3]:
-            data = _get_card_data(p)
-            _render_compact_card(p, data)
+            _render_compact_card(p, card_data_map[p.id])
 
 gap(8)
 
@@ -305,7 +306,8 @@ friday_price = Decimal(str(friday_data["close"])) if friday_data else current_pr
 
 # ── IB 상세 ───────────────────────────────────────────────────────────────────
 if sel_p.strategy == "IB":
-    snap           = svc.get_ib_snapshot(sel_p.id)
+    _sel_card = card_data_map.get(selected_pid)
+    snap = (_sel_card["snap"] if _sel_card else None) or svc.get_ib_snapshot(sel_p.id)
     avg            = snap["avg_price"]
     eff_rnd        = snap["effective_round"]
     cal_rnd        = snap["calendar_round"]
@@ -316,6 +318,7 @@ if sel_p.strategy == "IB":
         sel_p.id,
         manual_prev_close=prev_close,
         manual_current=current_price,
+        snap=snap,
     )
 
     card_header(sel_p.ticker, "IB", sel_p.name)
@@ -442,8 +445,9 @@ if sel_p.strategy == "IB":
 
 # ── VR 상세 ───────────────────────────────────────────────────────────────────
 else:
-    snap  = svc.get_vr_snapshot(sel_p.id)
-    guide = svc.generate_vr_guide(sel_p.id, manual_current=friday_price)
+    _sel_card = card_data_map.get(selected_pid)
+    snap = (_sel_card["snap"] if _sel_card else None) or svc.get_vr_snapshot(sel_p.id)
+    guide = svc.generate_vr_guide(sel_p.id, manual_current=friday_price, snap=snap)
 
     card_header(sel_p.ticker, "VR", sel_p.name)
 

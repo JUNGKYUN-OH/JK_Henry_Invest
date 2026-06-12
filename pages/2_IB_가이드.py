@@ -77,7 +77,7 @@ prev_close = Decimal(str(round(prev_close_val, 4)))
 current_price = Decimal(str(round(current_val, 4)))
 
 # 가이드 계산
-guide = svc.generate_ib_daily_guide(selected.id, manual_prev_close=prev_close, manual_current=current_price)
+guide = svc.generate_ib_daily_guide(selected.id, manual_prev_close=prev_close, manual_current=current_price, snap=snap)
 
 # ── 현재 상태 배너 ─────────────────────────────────────────────────────────────
 with st.container(border=True):

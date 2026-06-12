@@ -77,7 +77,7 @@ with st.container(border=True):
             st.rerun()
 
 current_price = Decimal(str(round(friday_val, 4)))
-guide = svc.generate_vr_guide(selected.id, manual_current=current_price)
+guide = svc.generate_vr_guide(selected.id, manual_current=current_price, snap=snap)
 
 # ── 이번 주기 현황 ─────────────────────────────────────────────────────────────
 with st.container(border=True):

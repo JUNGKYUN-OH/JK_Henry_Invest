@@ -87,8 +87,10 @@ class GuideService:
 
     def generate_ib_daily_guide(self, portfolio_id: int,
                                 manual_prev_close: Optional[Decimal] = None,
-                                manual_current: Optional[Decimal] = None) -> IBDailyGuide:
-        snap = self.get_ib_snapshot(portfolio_id)
+                                manual_current: Optional[Decimal] = None,
+                                snap: Optional[dict] = None) -> IBDailyGuide:
+        if snap is None:
+            snap = self.get_ib_snapshot(portfolio_id)
         portfolio = snap["portfolio"]
         params: IBParams = snap["params"]
 
@@ -195,8 +197,10 @@ class GuideService:
         }
 
     def generate_vr_guide(self, portfolio_id: int,
-                          manual_current: Optional[Decimal] = None) -> VRGuide:
-        snap = self.get_vr_snapshot(portfolio_id)
+                          manual_current: Optional[Decimal] = None,
+                          snap: Optional[dict] = None) -> VRGuide:
+        if snap is None:
+            snap = self.get_vr_snapshot(portfolio_id)
         portfolio = snap["portfolio"]
 
         # VR은 항상 '직전 금요일 종가' 기준

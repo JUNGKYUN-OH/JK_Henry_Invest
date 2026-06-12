@@ -1,6 +1,6 @@
-"""yfinance 래퍼 + 세션 캐시.
+"""yfinance 래퍼 + st.cache_data 캐시.
 
-동일 세션 내 같은 티커는 캐시에서 반환하여 중복 API 호출 방지.
+동일 요청은 캐시(TTL 300초)에서 반환하여 중복 API 호출 방지.
 네트워크 실패 시 예외를 발생시키지 않고 None을 반환 → 호출자가 처리.
 """
 
@@ -8,11 +8,8 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Optional
 
+import streamlit as st
 import yfinance as yf
-
-_cache: dict[str, dict] = {}  # {ticker: {"prev_close": Decimal, "current": Decimal}}
-_friday_cache: dict[str, dict] = {}  # {ticker: {"date": date, "close": Decimal}}
-_krw_cache: dict = {}  # {"rate": Decimal}
 
 
 def _fetch(ticker: str) -> dict:
@@ -27,22 +24,6 @@ def _fetch(ticker: str) -> dict:
     prev_close = Decimal(str(round(float(hist["Close"].iloc[-2]), 4)))
     current = Decimal(str(round(float(hist["Close"].iloc[-1]), 4)))
     return {"prev_close": prev_close, "current": current}
-
-
-def get_price_data(ticker: str, force_refresh: bool = False) -> Optional[dict]:
-    """
-    {"prev_close": Decimal, "current": Decimal} 반환.
-    실패 시 None 반환.
-    """
-    key = ticker.upper()
-    if not force_refresh and key in _cache:
-        return _cache[key]
-    try:
-        data = _fetch(key)
-        _cache[key] = data
-        return data
-    except Exception:
-        return None
 
 
 def _pick_friday_close(bars: list[tuple[date, Decimal]], today: date) -> Optional[dict]:
@@ -63,6 +44,59 @@ def _pick_friday_close(bars: list[tuple[date, Decimal]], today: date) -> Optiona
     return {"date": chosen[0], "close": chosen[1]}
 
 
+# ── st.cache_data 래핑 함수들 ──────────────────────────────────────────────────
+# today를 파라미터로 포함시켜 날짜가 바뀌면 캐시 키가 달라지도록 한다.
+
+@st.cache_data(ttl=300)
+def _cached_price_data(ticker: str) -> Optional[dict]:
+    try:
+        return _fetch(ticker)
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=300)
+def _cached_friday_data(ticker: str, today: date) -> Optional[dict]:
+    try:
+        t = yf.Ticker(ticker)
+        hist = t.history(period="1mo")
+        if hist.empty:
+            return None
+        hist = hist.dropna(subset=["Close"])
+        bars = [
+            (idx.date(), Decimal(str(round(float(close), 4))))
+            for idx, close in hist["Close"].items()
+        ]
+        return _pick_friday_close(bars, today)
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=300)
+def _cached_krw_rate() -> Optional[Decimal]:
+    try:
+        t = yf.Ticker("KRW=X")
+        hist = t.history(period="5d")
+        if hist.empty:
+            return None
+        return Decimal(str(round(float(hist["Close"].iloc[-1]), 2)))
+    except Exception:
+        return None
+
+
+# ── 공개 API ───────────────────────────────────────────────────────────────────
+
+def get_price_data(ticker: str, force_refresh: bool = False) -> Optional[dict]:
+    """
+    {"prev_close": Decimal, "current": Decimal} 반환.
+    실패 시 None 반환.
+    """
+    key = ticker.upper()
+    if force_refresh:
+        _cached_price_data.clear()
+    return _cached_price_data(key)
+
+
 def get_friday_close(ticker: str, force_refresh: bool = False) -> Optional[dict]:
     """
     VR 기준가 — '직전 금요일 종가'를 {"date": date, "close": Decimal}로 반환.
@@ -71,23 +105,9 @@ def get_friday_close(ticker: str, force_refresh: bool = False) -> Optional[dict]
     실패 시 None.
     """
     key = ticker.upper()
-    if not force_refresh and key in _friday_cache:
-        return _friday_cache[key]
-    try:
-        t = yf.Ticker(key)
-        hist = t.history(period="1mo")
-        if hist.empty:
-            return None
-        bars = [
-            (idx.date(), Decimal(str(round(float(close), 4))))
-            for idx, close in hist["Close"].items()
-        ]
-        result = _pick_friday_close(bars, date.today())
-        if result is not None:
-            _friday_cache[key] = result
-        return result
-    except Exception:
-        return None
+    if force_refresh:
+        _cached_friday_data.clear()
+    return _cached_friday_data(key, date.today())
 
 
 def get_prev_close(ticker: str) -> Optional[Decimal]:
@@ -101,28 +121,20 @@ def get_current_price(ticker: str) -> Optional[Decimal]:
 
 
 def get_usd_krw_rate() -> Optional[Decimal]:
-    """USD/KRW 실시간 환율. yfinance 'KRW=X' 티커 사용. 세션 캐시."""
-    if _krw_cache:
-        return _krw_cache.get("rate")
-    try:
-        t = yf.Ticker("KRW=X")
-        hist = t.history(period="5d")
-        if hist.empty:
-            return None
-        rate = Decimal(str(round(float(hist["Close"].iloc[-1]), 2)))
-        _krw_cache["rate"] = rate
-        return rate
-    except Exception:
-        return None
+    """USD/KRW 실시간 환율. yfinance 'KRW=X' 티커 사용. st.cache_data 캐시."""
+    return _cached_krw_rate()
 
 
 def clear_cache() -> None:
-    _cache.clear()
-    _friday_cache.clear()
-    _krw_cache.clear()
+    _cached_price_data.clear()
+    _cached_friday_data.clear()
+    _cached_krw_rate.clear()
 
 
 def ticker_exists(ticker: str) -> tuple[bool, Optional[dict]]:
     """티커가 yfinance에 존재하는지 확인. (exists, price_data) 반환."""
-    data = get_price_data(ticker.upper(), force_refresh=True)
-    return data is not None, data
+    try:
+        data = _fetch(ticker.upper())
+        return True, data
+    except Exception:
+        return False, None
