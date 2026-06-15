@@ -227,14 +227,16 @@ def test_second_half_condition_met():
     assert guide.buy_orders[0].label == "후반전 LOC"
 
 
-def test_second_half_condition_not_met():
+def test_second_half_always_loc():
+    # A ≤ C 상황에서도 후반전 LOC 주문이 생성되어야 함
     state  = _make_state(eff_rnd="25", avg="60.00", held="20.00")
     market = MarketData(ticker="TQQQ", prev_close=Decimal("63.00"), current_price=Decimal("63.50"))
     guide  = generate_ib_guide(state, market)
 
     assert guide.phase == IBPhase.SECOND_HALF
-    assert len(guide.buy_orders) == 0
-    assert any("매수 없음" in m for m in guide.messages)
+    assert len(guide.buy_orders) == 1
+    assert guide.buy_orders[0].label == "후반전 LOC"
+    assert guide.buy_orders[0].price == Decimal("60.00")
 
 
 # ── 40회차 소진 ───────────────────────────────────────────────────────────────

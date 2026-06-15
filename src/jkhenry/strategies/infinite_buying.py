@@ -148,7 +148,7 @@ def generate_ib_guide(state: IBState, market: MarketData) -> IBDailyGuide:
             messages.append(f"유효 회차 {state.effective_round:.1f} — 곧 후반전 전환")
 
     elif phase == IBPhase.SECOND_HALF:
-        if U_today > Decimal("0") and A > C:
+        if U_today > Decimal("0"):
             shares = _floor_shares(U_today, A)
             buy_orders.append(OrderGuide(
                 label="후반전 LOC",
@@ -157,10 +157,6 @@ def generate_ib_guide(state: IBState, market: MarketData) -> IBDailyGuide:
                 amount=(shares * A).quantize(Decimal("0.01")),
                 order_type=OrderType.LOC,
             ))
-        elif A <= C:
-            messages.append(
-                f"오늘은 매수 없음 — 평단가(${A:.2f}) ≤ 전일 종가(${C:.2f}), 후반전 진입 조건 미충족"
-            )
 
     elif phase == IBPhase.EXHAUSTED:
         messages.append("40회차 소진 — 매도 After 지정가를 체결될 때까지 매일 유지하세요 (영혼의 After 지정가).")
