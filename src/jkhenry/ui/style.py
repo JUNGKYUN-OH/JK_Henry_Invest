@@ -428,8 +428,14 @@ def _handle_oauth_callback() -> None:
             name  = userinfo.get("name", email)
             session_token = create_session(email, name)
             st.session_state["_auth_user"] = {"email": email, "name": name, "token": session_token}
-            # 세션 토큰을 URL에 저장 → F5 새로고침 시에도 유지됨
-            st.query_params[_QP_KEY] = session_token
+            # 실제 브라우저 리다이렉트로 토큰을 URL에 확실히 반영
+            import urllib.parse as _up
+            token_url = f"/?{_QP_KEY}={_up.quote(session_token)}"
+            st.markdown(
+                f'<meta http-equiv="refresh" content="0;url={token_url}">',
+                unsafe_allow_html=True,
+            )
+            st.stop()
     except Exception as e:
         st.error(f"인증 처리 오류: {e}")
         st.query_params.pop("code", None)
