@@ -540,8 +540,10 @@ def require_auth() -> None:
     user = st.session_state.get("_auth_user")
     if user:
         # URL에 세션 토큰 유지 (F5 새로고침 대비)
+        # rerun으로 토큰이 URL에 확실히 반영된 후 렌더링
         if _QP_KEY not in st.query_params and user.get("token"):
             st.query_params[_QP_KEY] = user["token"]
+            st.rerun()
         _check_whitelist(user)
         return
 
