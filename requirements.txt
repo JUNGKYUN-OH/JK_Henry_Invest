@@ -5,4 +5,3 @@ sqlalchemy>=2.0
 libsql-experimental
 pydantic>=2.7
 pandas>=2.0
-extra-streamlit-components>=0.1.60

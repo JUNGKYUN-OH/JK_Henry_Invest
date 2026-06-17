@@ -395,18 +395,72 @@ def _get_google_auth_url() -> str | None:
         return None
 
 
-def _get_cookie_manager():
-    """CookieManager 인스턴스 반환 (세션당 1개)."""
+def _read_session_cookie() -> str | None:
+    """WebSocket 연결 헤더의 Cookie에서 세션 토큰을 읽는다 (Streamlit 1.38+)."""
     try:
-        from extra_streamlit_components import CookieManager
-        return CookieManager(key="_jk_cm")
+        cookie_str = st.context.headers.get("Cookie", "") or ""
+        for part in cookie_str.split(";"):
+            k, _, v = part.strip().partition("=")
+            if k.strip() == _COOKIE_KEY:
+                return v.strip() or None
     except Exception:
-        return None
+        pass
+    return None
 
 
-def _handle_oauth_callback(cm) -> bool:
-    """URL에 ?code= 가 있으면 Google 토큰 교환 후 세션 저장. 처리 여부 반환."""
+def _write_session_cookie(token: str) -> None:
+    """브라우저 쿠키에 세션 토큰을 저장하는 JavaScript를 주입한다."""
+    import streamlit.components.v1 as _stcomp
+    max_age = _COOKIE_DAYS * 86400
+    _stcomp.html(
+        f"<script>"
+        f"(function(){{"
+        f"  var e=new Date(Date.now()+{max_age}*1000).toUTCString();"
+        f"  var c='{_COOKIE_KEY}={token};expires='+e+';path=/;SameSite=Lax';"
+        f"  document.cookie=c;"
+        f"  try{{window.parent.document.cookie=c;}}catch(ex){{}}"
+        f"}})();"
+        f"</script>",
+        height=0,
+    )
+
+
+def _delete_session_cookie() -> None:
+    """브라우저 쿠키에서 세션 토큰을 삭제한다."""
+    import streamlit.components.v1 as _stcomp
+    _stcomp.html(
+        f"<script>"
+        f"(function(){{"
+        f"  var c='{_COOKIE_KEY}=;expires=Thu,01 Jan 1970 00:00:00 UTC;path=/;SameSite=Lax';"
+        f"  document.cookie=c;"
+        f"  try{{window.parent.document.cookie=c;}}catch(ex){{}}"
+        f"}})();"
+        f"</script>",
+        height=0,
+    )
+
+
+def _handle_oauth_callback() -> bool:
+    """
+    OAuth 콜백을 2단계로 처리해 초기 렌더 블로킹을 방지한다.
+    Phase 1: URL의 code를 session_state에 저장 → st.rerun() (즉시 응답)
+    Phase 2: session_state의 code로 토큰 교환 → 세션 생성
+    """
+    # 에러 파라미터 처리
+    if st.query_params.get("error"):
+        st.error(f"Google 로그인 취소: {st.query_params.get('error')}")
+        st.query_params.clear()
+        return True
+
+    # Phase 1: code가 URL에 있으면 즉시 저장 후 rerun
     code = st.query_params.get("code")
+    if code:
+        st.session_state["_oauth_code"] = code
+        st.query_params.clear()
+        st.rerun()  # RerunException 발생 — 이하 코드 실행되지 않음
+
+    # Phase 2: session_state에 code 있으면 토큰 교환
+    code = st.session_state.pop("_oauth_code", None)
     if not code:
         return False
 
@@ -432,7 +486,6 @@ def _handle_oauth_callback(cm) -> bool:
         if not access_token:
             err = token_data.get("error_description") or token_data.get("error", "알 수 없는 오류")
             st.error(f"Google 로그인 오류: {err}")
-            st.query_params.clear()
             return True
 
         userinfo = httpx.get(
@@ -442,21 +495,16 @@ def _handle_oauth_callback(cm) -> bool:
         ).json()
 
         email = userinfo.get("email", "")
-        name = userinfo.get("name", "") or email
+        name  = userinfo.get("name", "") or email
         session_token = create_session(email, name)
 
         st.session_state["_auth_user"] = {"email": email, "name": name, "token": session_token}
+        _write_session_cookie(session_token)
+        st.rerun()  # 사이드바 포함 전체 재렌더
 
-        if cm:
-            cm.set(
-                _COOKIE_KEY,
-                session_token,
-                expires_at=datetime.now() + timedelta(days=_COOKIE_DAYS),
-            )
     except Exception as e:
         st.error(f"로그인 처리 중 오류: {e}")
 
-    st.query_params.clear()
     return True
 
 
@@ -464,10 +512,7 @@ def require_auth() -> None:
     if not _is_auth_enabled():
         return
 
-    # CookieManager를 st.stop() 전에 반드시 렌더링
-    cm = _get_cookie_manager()
-
-    if _handle_oauth_callback(cm):
+    if _handle_oauth_callback():
         return
 
     user = st.session_state.get("_auth_user")
@@ -475,17 +520,16 @@ def require_auth() -> None:
         _check_whitelist(user)
         return
 
-    # 쿠키에서 세션 복원 시도
-    if cm:
-        token = cm.get(_COOKIE_KEY)
-        if token:
-            from jkhenry.repository.session_store import get_session
-            restored = get_session(token)
-            if restored:
-                st.session_state["_auth_user"] = restored
-                _check_whitelist(restored)
-                return
-            cm.delete(_COOKIE_KEY)
+    # 쿠키에서 세션 복원 (새로고침 시)
+    token = _read_session_cookie()
+    if token:
+        from jkhenry.repository.session_store import get_session
+        restored = get_session(token)
+        if restored:
+            st.session_state["_auth_user"] = restored
+            _check_whitelist(restored)
+            return
+        _delete_session_cookie()
 
     _render_login_page()
     st.stop()
@@ -529,9 +573,7 @@ def render_sidebar() -> None:
                 st.divider()
                 st.caption(f"👤 {user.get('name') or user.get('email', '')}")
                 if st.button("로그아웃", use_container_width=True, key="__logout__"):
-                    cm = _get_cookie_manager()
-                    if cm:
-                        cm.delete(_COOKIE_KEY)
+                    _delete_session_cookie()
                     from jkhenry.repository.session_store import delete_session
                     delete_session(user.get("token", ""))
                     st.session_state.pop("_auth_user", None)
@@ -600,9 +642,7 @@ def _check_whitelist(user: dict) -> None:
             unsafe_allow_html=True,
         )
         if st.button("로그아웃", type="primary", use_container_width=False):
-            cm = _get_cookie_manager()
-            if cm:
-                cm.delete(_COOKIE_KEY)
+            _delete_session_cookie()
             from jkhenry.repository.session_store import delete_session
             delete_session(user.get("token", ""))
             st.session_state.pop("_auth_user", None)
