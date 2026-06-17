@@ -441,28 +441,22 @@ def _delete_session_cookie() -> None:
 
 
 def _handle_oauth_callback() -> bool:
-    """
-    OAuth 콜백을 2단계로 처리해 초기 렌더 블로킹을 방지한다.
-    Phase 1: URL의 code를 session_state에 저장 → st.rerun() (즉시 응답)
-    Phase 2: session_state의 code로 토큰 교환 → 세션 생성
-    """
-    # 에러 파라미터 처리
+    """OAuth 콜백 처리. 처리된 코드 집합으로 무한 rerun 루프를 방지한다."""
     if st.query_params.get("error"):
         st.error(f"Google 로그인 취소: {st.query_params.get('error')}")
-        st.query_params.clear()
         return True
 
-    # Phase 1: code가 URL에 있으면 즉시 저장 후 rerun
     code = st.query_params.get("code")
-    if code:
-        st.session_state["_oauth_code"] = code
-        st.query_params.clear()
-        st.rerun()  # RerunException 발생 — 이하 코드 실행되지 않음
-
-    # Phase 2: session_state에 code 있으면 토큰 교환
-    code = st.session_state.pop("_oauth_code", None)
     if not code:
         return False
+
+    # 이미 처리한 코드인지 확인 (query_params.clear()가 늦어도 루프 방지)
+    seen = st.session_state.setdefault("_oauth_seen", set())
+    if code in seen:
+        # 이미 처리 완료 → 세션 있으면 정상, 없으면 로그인 페이지
+        return bool(st.session_state.get("_auth_user"))
+    seen.add(code)
+    st.query_params.clear()
 
     try:
         import httpx
@@ -500,7 +494,7 @@ def _handle_oauth_callback() -> bool:
 
         st.session_state["_auth_user"] = {"email": email, "name": name, "token": session_token}
         _write_session_cookie(session_token)
-        st.rerun()  # 사이드바 포함 전체 재렌더
+        st.rerun()
 
     except Exception as e:
         st.error(f"로그인 처리 중 오류: {e}")
