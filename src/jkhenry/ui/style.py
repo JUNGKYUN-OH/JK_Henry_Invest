@@ -1,7 +1,16 @@
 # -*- coding: utf-8 -*-
 """글로벌 CSS + HTML 컴포넌트. Glassmorphism + Bento Grid 디자인."""
 
+import urllib.parse as _up
+from datetime import datetime, timedelta
+
 import streamlit as st
+
+_GOOGLE_AUTH_BASE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+_GOOGLE_TOKEN_URL     = "https://oauth2.googleapis.com/token"
+_GOOGLE_USERINFO_URL  = "https://openidconnect.googleapis.com/v1/userinfo"
+_COOKIE_KEY           = "_jk_s"
+_COOKIE_DAYS          = 30
 
 # ── CSS 변수 ──────────────────────────────────────────────────────────────────
 
@@ -357,33 +366,136 @@ def inject_css() -> None:
 
 def _is_auth_enabled() -> bool:
     try:
-        auth = st.secrets.get("auth", {})
-        return bool(auth.get("google") and auth.get("cookie_secret"))
+        g = st.secrets.get("auth", {}).get("google", {})
+        return bool(g.get("client_id") and g.get("client_secret"))
     except Exception:
         return False
 
 
+def _get_redirect_uri() -> str:
+    try:
+        return st.secrets["auth"]["redirect_uri"]
+    except Exception:
+        return "http://localhost:8501/"
+
+
+def _get_google_auth_url() -> str | None:
+    if not _is_auth_enabled():
+        return None
+    try:
+        params = {
+            "client_id": st.secrets["auth"]["google"]["client_id"],
+            "redirect_uri": _get_redirect_uri(),
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "online",
+        }
+        return f"{_GOOGLE_AUTH_BASE_URL}?{_up.urlencode(params)}"
+    except Exception:
+        return None
+
+
+def _get_cookie_manager():
+    """CookieManager 인스턴스 반환 (세션당 1개)."""
+    try:
+        from extra_streamlit_components import CookieManager
+        return CookieManager(key="_jk_cm")
+    except Exception:
+        return None
+
+
+def _handle_oauth_callback(cm) -> bool:
+    """URL에 ?code= 가 있으면 Google 토큰 교환 후 세션 저장. 처리 여부 반환."""
+    code = st.query_params.get("code")
+    if not code:
+        return False
+
+    try:
+        import httpx
+        from jkhenry.repository.session_store import create_session
+
+        g = st.secrets["auth"]["google"]
+        token_resp = httpx.post(
+            _GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": g["client_id"],
+                "client_secret": g["client_secret"],
+                "redirect_uri": _get_redirect_uri(),
+                "grant_type": "authorization_code",
+            },
+            timeout=15,
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+
+        if not access_token:
+            err = token_data.get("error_description") or token_data.get("error", "알 수 없는 오류")
+            st.error(f"Google 로그인 오류: {err}")
+            st.query_params.clear()
+            return True
+
+        userinfo = httpx.get(
+            _GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        ).json()
+
+        email = userinfo.get("email", "")
+        name = userinfo.get("name", "") or email
+        session_token = create_session(email, name)
+
+        st.session_state["_auth_user"] = {"email": email, "name": name, "token": session_token}
+
+        if cm:
+            cm.set(
+                _COOKIE_KEY,
+                session_token,
+                expires_at=datetime.now() + timedelta(days=_COOKIE_DAYS),
+            )
+    except Exception as e:
+        st.error(f"로그인 처리 중 오류: {e}")
+
+    st.query_params.clear()
+    return True
+
+
 def require_auth() -> None:
     if not _is_auth_enabled():
-        return  # 로컬 개발 바이패스
-    if not st.user.is_logged_in:
-        _render_login_page()
-        st.stop()
-    if "_auth_user" not in st.session_state:
-        name = getattr(st.user, "name", None) or st.user.email
-        st.session_state["_auth_user"] = {
-            "email": st.user.email,
-            "name": name,
-            "token": "",
-        }
-    _check_whitelist(st.session_state["_auth_user"])
+        return
+
+    # CookieManager를 st.stop() 전에 반드시 렌더링
+    cm = _get_cookie_manager()
+
+    if _handle_oauth_callback(cm):
+        return
+
+    user = st.session_state.get("_auth_user")
+    if user:
+        _check_whitelist(user)
+        return
+
+    # 쿠키에서 세션 복원 시도
+    if cm:
+        token = cm.get(_COOKIE_KEY)
+        if token:
+            from jkhenry.repository.session_store import get_session
+            restored = get_session(token)
+            if restored:
+                st.session_state["_auth_user"] = restored
+                _check_whitelist(restored)
+                return
+            cm.delete(_COOKIE_KEY)
+
+    _render_login_page()
+    st.stop()
 
 
 def render_sidebar() -> None:
     theme = current_theme()
     auth_on = _is_auth_enabled()
-    logged_in = (not auth_on) or st.user.is_logged_in
     user = st.session_state.get("_auth_user")
+    logged_in = (not auth_on) or bool(user)
 
     with st.sidebar:
         brand_color = "#4F8EF7" if theme == "dark" else "#2563EB"
@@ -413,21 +525,27 @@ def render_sidebar() -> None:
                 st.rerun()
             st.caption(f"현재: {'🌙 다크' if theme == 'dark' else '☀️ 라이트'}")
 
-            if auth_on:
+            if auth_on and user:
                 st.divider()
-                display_name = (user or {}).get("name") or (
-                    getattr(st.user, "name", None) or st.user.email
-                )
-                st.caption(f"👤 {display_name}")
+                st.caption(f"👤 {user.get('name') or user.get('email', '')}")
                 if st.button("로그아웃", use_container_width=True, key="__logout__"):
+                    cm = _get_cookie_manager()
+                    if cm:
+                        cm.delete(_COOKIE_KEY)
+                    from jkhenry.repository.session_store import delete_session
+                    delete_session(user.get("token", ""))
                     st.session_state.pop("_auth_user", None)
-                    st.logout()
+                    st.rerun()
         else:
             st.caption("로그인 후 이용하실 수 있습니다.")
             if auth_on:
-                if st.button("🔑 Google로 로그인", use_container_width=True,
-                             key="__sidebar_login__", type="primary"):
-                    st.login("google")
+                auth_url = _get_google_auth_url()
+                if auth_url:
+                    st.markdown(
+                        f'<a href="{auth_url}" class="google-login-btn" target="_self">'
+                        f'🔑 Google로 로그인</a>',
+                        unsafe_allow_html=True,
+                    )
             else:
                 st.caption("⚙️ secrets.toml에 [auth.google] 설정이 필요합니다.")
 
@@ -453,14 +571,13 @@ def _render_login_page() -> None:
             unsafe_allow_html=True,
         )
         gap(20)
-        if _is_auth_enabled():
-            if st.button(
-                "🔑 Google 계정으로 로그인",
-                key="__login_main__",
-                use_container_width=True,
-                type="primary",
-            ):
-                st.login("google")
+        auth_url = _get_google_auth_url()
+        if auth_url:
+            st.markdown(
+                f'<a href="{auth_url}" class="google-login-btn" target="_self">'
+                f'🔑 Google 계정으로 로그인</a>',
+                unsafe_allow_html=True,
+            )
         else:
             st.info("⚙️ Google 로그인 설정이 완료되지 않았습니다.\n\n"
                     "secrets.toml에 [auth] 섹션과 [auth.google] 섹션을 추가해 주세요.")
@@ -483,8 +600,13 @@ def _check_whitelist(user: dict) -> None:
             unsafe_allow_html=True,
         )
         if st.button("로그아웃", type="primary", use_container_width=False):
+            cm = _get_cookie_manager()
+            if cm:
+                cm.delete(_COOKIE_KEY)
+            from jkhenry.repository.session_store import delete_session
+            delete_session(user.get("token", ""))
             st.session_state.pop("_auth_user", None)
-            st.logout()
+            st.rerun()
         st.stop()
 
 
